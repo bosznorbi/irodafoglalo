@@ -1,0 +1,658 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kontroller teszt</title>
+<!--
+  ONALLO KONTROLLER TESZT
+
+  Egyetlen fajl, nulla fuggoseg. Dupla kattintasra elindul, nem kell hozza sem
+  kiszolgalo, sem telepites.
+
+  Szandekosan NEM ES modul, es szandekosan nincs kulon .js fajlja: a bongeszo a
+  modulokat nem tolti be file://-rol (CORS), tehat ha szetbontanank, dupla
+  kattintasra ures lapot adna.
+-->
+<style>
+  :root {
+    --bg: #10131a; --panel: #191d27; --panel2: #232838; --line: #333a4b;
+    --text: #e8ecf4; --dim: #8b93a7;
+    --ok: #4ade80; --okDim: #2f6b45; --warn: #f5b942; --bad: #f0616e;
+    --p1: #6fb4ff; --p2: #ff7a7a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 22px 20px 40px; background: var(--bg); color: var(--text);
+    font: 14px/1.55 ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 3px; letter-spacing: .04em; }
+  .sub { color: var(--dim); margin: 0 0 18px; }
+
+  /* ---------------------------------------------------------- verdikt */
+  .verdict {
+    display: flex; align-items: center; gap: 14px;
+    border: 2px solid var(--bad); background: #1c1418; padding: 16px 18px; margin-bottom: 20px;
+  }
+  .verdict.half { border-color: var(--warn); background: #1e1a12; }
+  .verdict.good { border-color: var(--ok); background: #121d16; }
+  .vdot { width: 16px; height: 16px; border-radius: 50%; background: var(--bad); flex: none; }
+  .verdict.half .vdot { background: var(--warn); }
+  .verdict.good .vdot { background: var(--ok); }
+  .vmain { font-size: 19px; font-weight: 700; letter-spacing: .05em; }
+  .verdict.good .vmain { color: var(--ok); }
+  .verdict.half .vmain { color: var(--warn); }
+  .verdict.bad .vmain { color: var(--bad); }
+  .vsub { color: var(--dim); margin-left: auto; text-align: right; }
+
+  /* ---------------------------------------------------------- padkartyak */
+  .pads { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 22px; }
+  @media (max-width: 780px) { .pads { grid-template-columns: 1fr; } }
+  .card { border: 1px solid var(--line); background: var(--panel); padding: 14px; }
+  .card.p1 { border-top: 3px solid var(--p1); }
+  .card.p2 { border-top: 3px solid var(--p2); }
+  .card.off { opacity: .5; }
+  .card h2 { font-size: 13px; letter-spacing: .12em; margin: 0 0 2px; }
+  .card.p1 h2 { color: var(--p1); }
+  .card.p2 h2 { color: var(--p2); }
+  .card .who {
+    color: var(--dim); font: 11px/1.4 ui-monospace, Consolas, monospace;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 10px;
+  }
+  .count { font: 13px/1.6 ui-monospace, Consolas, monospace; color: var(--dim); margin-top: 10px; }
+  .count b { color: var(--ok); }
+  .count.all { color: var(--ok); }
+
+  /* ---------------------------------------------------------- padrajz */
+  .pad { position: relative; width: 100%; max-width: 420px; aspect-ratio: 258 / 116; margin: 0 auto; }
+  .pad .bd { position: absolute; left: 0; right: 0; top: 10.34%; bottom: 0; background: #464c5e; }
+  .pad i { position: absolute; display: block; background: #2b303e; }
+  .pad u {
+    position: absolute; display: flex; align-items: center; justify-content: center;
+    text-decoration: none; font-weight: 700; font-size: 11px; color: #cfd6e6;
+    background: #6a5a8e; border-radius: 50%; width: 8.91%; height: 19.83%;
+  }
+  .pad u.xy { background: #8a7ab5; }
+  .pad s {
+    position: absolute; display: block; text-decoration: none; background: #5a6076;
+    width: 11.63%; height: 8.62%; transform: rotate(-16deg);
+  }
+  .pad em { position: absolute; font-style: normal; font-size: 9px; color: #8a93aa; white-space: nowrap; }
+  .pad b.sh {
+    position: absolute; top: 0; width: 20.93%; height: 12.93%; background: #3a4053;
+    font: 700 10px/1 ui-sans-serif, sans-serif; color: #aab3c6;
+    display: flex; align-items: center; justify-content: center;
+  }
+  /* Mar kiprobalt gomb halvanyzold, az eppen nyomott elenkzold. */
+  .pad .done { background: var(--okDim) !important; color: #bff0d0 !important; }
+  .pad .on {
+    background: var(--ok) !important; color: #0e2b18 !important;
+    box-shadow: 0 0 12px 2px rgba(74, 222, 128, .6);
+  }
+
+  /* ---------------------------------------------------------- tablazat */
+  h3 { font-size: 12px; letter-spacing: .1em; text-transform: uppercase; color: var(--dim);
+       margin: 0 0 8px; font-weight: 600; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+  th { color: var(--dim); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+  td.k { font: 12px/1.4 ui-monospace, Consolas, monospace; }
+  td.k b { color: var(--p1); font-weight: 600; }
+  td.k i { color: var(--p2); font-style: normal; font-weight: 600; }
+  .led { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--panel2); }
+  .led.done { background: var(--okDim); }
+  .led.on { background: var(--ok); box-shadow: 0 0 7px rgba(74,222,128,.8); }
+  .section { border: 1px solid var(--line); background: var(--panel); padding: 16px; margin-bottom: 16px; }
+
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+  button {
+    font: 500 13px/1 ui-sans-serif, system-ui, sans-serif; color: var(--text);
+    background: var(--panel2); border: 1px solid var(--line); padding: 9px 14px; cursor: pointer;
+  }
+  button:hover { background: #2c3244; }
+  .note { color: var(--dim); font-size: 12.5px; margin: 10px 0 0; }
+  code { font: 12px/1.4 ui-monospace, Consolas, monospace; background: var(--panel2); padding: 1px 5px; }
+
+  /* ---------------------------------------------------------- halado */
+  #adv { display: none; }
+  #adv.on { display: block; }
+  .tag { font: 11px/1 ui-monospace, Consolas, monospace; padding: 5px 8px;
+         background: var(--panel2); color: var(--dim); display: inline-block; margin: 0 5px 5px 0; }
+  .tag b { color: var(--text); }
+  .bits { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+  .bit { width: 25px; text-align: center; padding: 3px 0; background: var(--panel2);
+         font: 11px/1.2 ui-monospace, monospace; color: var(--dim); }
+  .bit.on { background: var(--ok); color: #0e2b18; font-weight: 700; }
+  pre { background: #0c0e13; border: 1px solid var(--line); padding: 12px;
+        font: 12px/1.5 ui-monospace, Consolas, monospace; color: #9fe8b5;
+        max-height: 240px; overflow: auto; white-space: pre-wrap; word-break: break-all; }
+  #calib { display: none; text-align: center; border: 1px solid var(--warn);
+           background: #1e1a12; padding: 18px; margin-top: 14px; }
+  #calib.on { display: block; }
+  #calibName { font-size: 30px; font-weight: 700; letter-spacing: .08em; color: var(--warn); margin: 6px 0 2px; }
+  .prog { display: flex; gap: 3px; justify-content: center; margin-top: 10px; }
+  .prog i { width: 18px; height: 4px; background: var(--line); display: block; }
+  .prog i.d { background: var(--ok); } .prog i.c { background: var(--warn); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Kontroller teszt</h1>
+  <p class="sub">Dugd be mindkét kontrollert, és nyomj meg rajtuk egy gombot.
+    A böngésző előbb nem is látja őket.</p>
+
+  <div class="verdict bad" id="verdict">
+    <span class="vdot"></span>
+    <span class="vmain" id="vmain">NINCS KONTROLLER</span>
+    <span class="vsub" id="vsub">Dugd be, és nyomj meg rajta egy gombot.</span>
+  </div>
+
+  <div class="pads">
+    <div class="card p1 off" id="card0">
+      <h2>1. KONTROLLER</h2>
+      <div class="who" id="who0">nincs csatlakoztatva</div>
+      <div id="pad0"></div>
+      <div class="count" id="cnt0"></div>
+    </div>
+    <div class="card p2 off" id="card1">
+      <h2>2. KONTROLLER</h2>
+      <div class="who" id="who1">nincs csatlakoztatva</div>
+      <div id="pad1"></div>
+      <div class="count" id="cnt1"></div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>Ezeket a billentyűket kapja a játékod</h3>
+    <p class="note" style="margin:0 0 10px">
+      A kontrollergombok valódi billentyűeseményt küldenek. Úgy írd a játékot,
+      mintha billentyűzetes kétjátékos játék lenne, és a pad magától működni fog.
+    </p>
+    <table id="keys"></table>
+  </div>
+
+  <div class="row">
+    <button id="reset">Teszt újrakezdése</button>
+    <button id="advBtn">Haladó beállítások</button>
+  </div>
+
+  <div id="adv">
+    <div class="section" style="margin-top:16px">
+      <h3>Eszközadatok</h3>
+      <div id="devs"></div>
+      <div id="calib">
+        <div style="color:var(--dim)">Nyomd meg ezt a gombot az <b id="calibPad">1.</b> kontrolleren:</div>
+        <div id="calibName">START</div>
+        <div style="color:var(--dim);font-size:12.5px" id="calibHint"></div>
+        <div class="prog" id="calibProg"></div>
+        <div class="row" style="justify-content:center">
+          <button id="calibSkip">Kihagyás</button>
+          <button id="calibStop">Mégse</button>
+        </div>
+      </div>
+      <div class="row">
+        <button id="calibStart">Bemérés indítása</button>
+        <button id="calibReset">Bemérések törlése</button>
+        <button id="swap">1. és 2. cseréje</button>
+      </div>
+      <p class="note">
+        Bemérésre csak akkor van szükség, ha rossz gomb gyullad ki. A várt
+        kontroller kiosztása be van építve, tehát alapból nem kell semmit tenni.
+      </p>
+    </div>
+
+    <div class="section">
+      <h3>Napló</h3>
+      <pre id="log">-</pre>
+    </div>
+  </div>
+
+</div>
+
+<script>
+'use strict';
+
+// ---------------------------------------------------------------- gombok
+// A 12 SNES gomb. Ebben a sorrendben kerdez a bemeres is.
+var BUTTONS = [
+  { id: 'up',     label: '↑ fel',   hint: 'iránykereszt felső fele' },
+  { id: 'down',   label: '↓ le',    hint: 'iránykereszt alsó fele' },
+  { id: 'left',   label: '← bal',   hint: 'iránykereszt bal fele' },
+  { id: 'right',  label: '→ jobb',  hint: 'iránykereszt jobb fele' },
+  { id: 'b',      label: 'B',       hint: 'alsó gomb a négy közül' },
+  { id: 'a',      label: 'A',       hint: 'jobb oldali gomb a négy közül' },
+  { id: 'y',      label: 'Y',       hint: 'bal oldali gomb a négy közül' },
+  { id: 'x',      label: 'X',       hint: 'felső gomb a négy közül' },
+  { id: 'l',      label: 'L váll',  hint: 'bal vállgomb a pad tetején' },
+  { id: 'r',      label: 'R váll',  hint: 'jobb vállgomb a pad tetején' },
+  { id: 'select', label: 'SELECT',  hint: 'bal oldali kis ovális gomb középen' },
+  { id: 'start',  label: 'START',   hint: 'jobb oldali kis ovális gomb középen' }
+];
+
+// Az alapertelmezett billentyu-kiosztas. UGYANEZ all a gamepad.js-ben: ha itt
+// valtozik, ott is valtoztatni kell.
+var KEYS = [
+  { up:'KeyW', down:'KeyS', left:'KeyA', right:'KeyD',
+    b:'KeyG', a:'KeyH', y:'KeyF', x:'KeyT',
+    l:'KeyQ', r:'KeyE', select:'KeyC', start:'KeyV' },
+  { up:'ArrowUp', down:'ArrowDown', left:'ArrowLeft', right:'ArrowRight',
+    b:'KeyK', a:'KeyL', y:'KeyJ', x:'KeyI',
+    l:'KeyU', r:'KeyO', select:'Enter', start:'Space' }
+];
+
+// ---------------------------------------------------------------- profilok
+// A varhato eszkoz. Ha ez van bedugva, semmit nem kell beallitani.
+var BUILTIN = {
+  '081f:e401': {
+    name: 'SNES USB gamepad (081f:e401)',
+    buttons: { x: 0, a: 1, b: 2, y: 3, l: 4, r: 5, select: 8, start: 9 },
+    axes: { x: 0, y: 1 }
+  }
+};
+
+// Szabvanyos ("standard") mappingu pad, pl. Xbox vagy PlayStation. A W3C
+// sorrendben a 0-as gomb az ALSO arcgomb, ami a SNES-en a B.
+var STANDARD = {
+  name: 'Szabványos gamepad',
+  buttons: { b: 0, a: 1, y: 2, x: 3, l: 4, r: 5, select: 8, start: 9 },
+  axes: { x: 0, y: 1 },
+  dpad: { up: 12, down: 13, left: 14, right: 15 }
+};
+
+// Vegso menedek ismeretlen padre.
+var GENERIC = {
+  name: 'Ismeretlen gamepad (találgatott kiosztás)',
+  guess: true,
+  buttons: { x: 0, a: 1, b: 2, y: 3, l: 4, r: 5, select: 8, start: 9 },
+  axes: { x: 0, y: 1 }
+};
+
+function padSig(p) {
+  var m = /vendor:\s*([0-9a-f]{4}).*?product:\s*([0-9a-f]{4})/i.exec(p.id || '');
+  return m ? (m[1] + ':' + m[2]).toLowerCase() : (p.id || 'ismeretlen').slice(0, 40).toLowerCase();
+}
+
+var learned = {};
+try { learned = JSON.parse(localStorage.getItem('snesPadProfiles') || '{}') || {}; } catch (e) { /* privat mod */ }
+
+/**
+ * A padhoz tartozo profil. A bemert ertekek nyernek, de nem TORLIK a
+ * beepitett tablat: ossze vannak fesulve. Enelkul egy felbehagyott bemeres
+ * nemava tenne gombokat, amiknek amugy tudjuk a helyet.
+ */
+function profFor(p) {
+  if (!p) return GENERIC;
+  var sig = padSig(p);
+  var base = BUILTIN[sig] || (p.mapping === 'standard' ? STANDARD : GENERIC);
+  var learn = learned[sig];
+  if (!learn) return base;
+  var out = { name: learn.name || base.name, buttons: {}, axes: {}, dpad: base.dpad };
+  var k;
+  for (k in base.buttons) out.buttons[k] = base.buttons[k];
+  for (k in (learn.buttons || {})) out.buttons[k] = learn.buttons[k];
+  for (k in (base.axes || {})) out.axes[k] = base.axes[k];
+  for (k in (learn.axes || {})) out.axes[k] = learn.axes[k];
+  return out;
+}
+
+/**
+ * A hat-kapcsolo (POV) egyetlen tengelyen adja a nyolc iranyt, es nyugalomban
+ * 1-nel nagyobb erteket kuld (Chrome-ban tipikusan 3.2857).
+ */
+function decodeHat(v) {
+  if (!(v >= -1.05 && v <= 1.05)) return null;
+  var s = Math.max(0, Math.min(7, Math.round((v + 1) * 3.5)));
+  return [
+    { up:1 }, { up:1, right:1 }, { right:1 }, { right:1, down:1 },
+    { down:1 }, { down:1, left:1 }, { left:1 }, { up:1, left:1 }
+  ][s];
+}
+
+function readPad(p) {
+  var st = {}, i, k;
+  for (i = 0; i < BUTTONS.length; i++) st[BUTTONS[i].id] = false;
+  if (!p) return st;
+  var prof = profFor(p);
+  for (k in prof.buttons) {
+    var b = p.buttons[prof.buttons[k]];
+    if (b && (b.pressed || b.value > 0.5)) st[k] = true;
+  }
+  if (prof.dpad) {
+    for (k in prof.dpad) {
+      var d = p.buttons[prof.dpad[k]];
+      if (d && (d.pressed || d.value > 0.5)) st[k] = true;
+    }
+  }
+  var a = prof.axes || {}, ax = p.axes;
+  if (a.hat != null && ax.length > a.hat) {
+    var h = decodeHat(ax[a.hat]);
+    if (h) for (k in h) st[k] = true;
+  }
+  if (a.x != null && ax.length > a.x) {
+    if (ax[a.x] < -0.5) st.left = true;
+    if (ax[a.x] > 0.5) st.right = true;
+  }
+  if (a.y != null && ax.length > a.y) {
+    if (ax[a.y] < -0.5) st.up = true;
+    if (ax[a.y] > 0.5) st.down = true;
+  }
+  if (prof.guess) {
+    for (i = 2; i < ax.length; i++) {
+      var hh = decodeHat(ax[i]);
+      if (hh) for (k in hh) st[k] = true;
+    }
+  }
+  return st;
+}
+
+// ---------------------------------------------------------------- padrajz
+function padHtml(slot) {
+  var q = function (n) { return 'id="p' + slot + '-' + n + '"'; };
+  var D = 'width:6.59%;height:14.66%';
+  return '<div class="pad">' +
+    '<b class="sh" style="left:5.43%" ' + q('l') + '>L</b>' +
+    '<b class="sh" style="right:5.43%" ' + q('r') + '>R</b>' +
+    '<div class="bd"></div>' +
+    '<i ' + q('up')    + ' style="left:14.73%;top:32.76%;' + D + '"></i>' +
+    '<i ' + q('left')  + ' style="left:8.14%;top:47.41%;' + D + '"></i>' +
+    '<i style="left:14.73%;top:47.41%;' + D + '"></i>' +
+    '<i ' + q('right') + ' style="left:21.32%;top:47.41%;' + D + '"></i>' +
+    '<i ' + q('down')  + ' style="left:14.73%;top:62.07%;' + D + '"></i>' +
+    '<s ' + q('select') + ' style="left:36.43%;top:60.34%"></s>' +
+    '<s ' + q('start')  + ' style="left:50.39%;top:60.34%"></s>' +
+    '<em style="left:35.5%;top:74%">SELECT</em>' +
+    '<em style="left:51.5%;top:74%">START</em>' +
+    '<u class="xy" ' + q('x') + ' style="left:79.46%;top:28.45%">X</u>' +
+    '<u class="xy" ' + q('y') + ' style="left:69.77%;top:49.14%">Y</u>' +
+    '<u ' + q('a') + ' style="left:89.15%;top:49.14%">A</u>' +
+    '<u ' + q('b') + ' style="left:79.46%;top:69.83%">B</u>' +
+    '</div>';
+}
+document.getElementById('pad0').innerHTML = padHtml(0);
+document.getElementById('pad1').innerHTML = padHtml(1);
+
+// ---------------------------------------------------------------- allapot
+var slots = [null, null];
+var seen = [{}, {}];         // melyik gombot probaltak mar ki
+var logLines = [];
+var calib = null;
+
+function $(id) { return document.getElementById(id); }
+
+function log(msg) {
+  logLines.unshift(new Date().toTimeString().slice(0, 8) + '  ' + msg);
+  if (logLines.length > 40) logLines.pop();
+  $('log').textContent = logLines.join('\n');
+}
+
+function livePads() {
+  var raw = navigator.getGamepads ? navigator.getGamepads() : [];
+  var out = [];
+  for (var i = 0; i < raw.length; i++) if (raw[i] && raw[i].connected) out.push(raw[i]);
+  return out;
+}
+
+function padAt(slot) {
+  if (slots[slot] == null) return null;
+  var raw = navigator.getGamepads ? navigator.getGamepads() : [];
+  for (var i = 0; i < raw.length; i++) {
+    if (raw[i] && raw[i].connected && raw[i].index === slots[slot]) return raw[i];
+  }
+  return null;
+}
+
+function syncSlots() {
+  var live = livePads(), have = {}, i, s;
+  for (i = 0; i < live.length; i++) have[live[i].index] = true;
+  for (s = 0; s < 2; s++) if (slots[s] != null && !have[slots[s]]) slots[s] = null;
+  // Lyuk elore tomorites: ne maradjon ures az elso hely, ha van pad.
+  if (slots[0] == null && slots[1] != null) { slots[0] = slots[1]; slots[1] = null; }
+  for (i = 0; i < live.length; i++) {
+    if (slots.indexOf(live[i].index) >= 0) continue;
+    var free = slots.indexOf(null);
+    if (free >= 0) { slots[free] = live[i].index; log('kontroller a ' + (free + 1) + '. helyre'); }
+  }
+}
+
+// ---------------------------------------------------------------- billentyutabla
+(function buildKeyTable() {
+  var h = '<tr><th>Pad gomb</th><th>1. kontroller</th><th></th><th>2. kontroller</th><th></th></tr>';
+  for (var i = 0; i < BUTTONS.length; i++) {
+    var id = BUTTONS[i].id;
+    h += '<tr><td>' + BUTTONS[i].label + '</td>' +
+      '<td class="k"><b>' + KEYS[0][id] + '</b></td>' +
+      '<td style="width:24px"><span class="led" id="l0-' + id + '"></span></td>' +
+      '<td class="k"><i>' + KEYS[1][id] + '</i></td>' +
+      '<td style="width:24px"><span class="led" id="l1-' + id + '"></span></td></tr>';
+  }
+  $('keys').innerHTML = h;
+}());
+
+// ---------------------------------------------------------------- bemeres
+function startCalib(slot) {
+  var p = padAt(slot);
+  if (!p) { log('nincs mit bemérni'); return; }
+  calib = { slot: slot, step: 0, sig: padSig(p), prof: { name: 'Bemért: ' + p.id, buttons: {}, axes: {} },
+            base: null, wait: false };
+  $('calib').classList.add('on');
+  drawCalib();
+}
+
+function drawCalib() {
+  if (!calib) return;
+  var b = BUTTONS[calib.step];
+  $('calibPad').textContent = (calib.slot + 1) + '.';
+  $('calibName').textContent = b.label.toUpperCase();
+  $('calibHint').textContent = b.hint;
+  var h = '';
+  for (var i = 0; i < BUTTONS.length; i++) {
+    h += '<i class="' + (i < calib.step ? 'd' : i === calib.step ? 'c' : '') + '"></i>';
+  }
+  $('calibProg').innerHTML = h;
+}
+
+function calibNext() {
+  calib.step++;
+  calib.base = null;
+  calib.wait = false;
+  if (calib.step < BUTTONS.length) { drawCalib(); return; }
+  learned[calib.sig] = calib.prof;
+  try { localStorage.setItem('snesPadProfiles', JSON.stringify(learned)); } catch (e) { /* privat mod */ }
+  log('bemérés kész: ' + calib.sig);
+  seen[calib.slot] = {};
+  calib = null;
+  $('calib').classList.remove('on');
+}
+
+function calibStep() {
+  var p = padAt(calib.slot), i;
+  if (!p) return;
+  if (!calib.base) {
+    calib.base = { b: [], a: [] };
+    for (i = 0; i < p.buttons.length; i++) calib.base.b.push(p.buttons[i].pressed || p.buttons[i].value > 0.5);
+    for (i = 0; i < p.axes.length; i++) calib.base.a.push(p.axes[i]);
+    return;
+  }
+  if (calib.wait) {
+    var still = false;
+    for (i = 0; i < p.buttons.length; i++) {
+      if ((p.buttons[i].pressed || p.buttons[i].value > 0.5) !== calib.base.b[i]) still = true;
+    }
+    for (i = 0; i < p.axes.length; i++) if (Math.abs(p.axes[i] - calib.base.a[i]) > 0.5) still = true;
+    if (!still) calibNext();
+    return;
+  }
+  var name = BUTTONS[calib.step].id;
+  for (i = 0; i < p.buttons.length; i++) {
+    var on = p.buttons[i].pressed || p.buttons[i].value > 0.5;
+    if (on && on !== calib.base.b[i]) { calib.prof.buttons[name] = i; calib.wait = true; return; }
+  }
+  for (i = 0; i < p.axes.length; i++) {
+    var d = p.axes[i] - calib.base.a[i];
+    if (Math.abs(d) <= 0.5) continue;
+    if (Math.abs(calib.base.a[i]) > 1.05) calib.prof.axes.hat = i;
+    else if (name === 'left' || name === 'right') calib.prof.axes.x = i;
+    else if (name === 'up' || name === 'down') calib.prof.axes.y = i;
+    calib.wait = true;
+    return;
+  }
+}
+
+// ---------------------------------------------------------------- eszkozadatok
+var devCache = '';
+function drawDevices() {
+  var live = livePads(), h = '', i;
+  var key = live.map(function (p) { return p.index + p.id; }).join('|');
+  if (key === devCache) return;
+  devCache = key;
+  if (!live.length) { $('devs').innerHTML = '<p class="note">Nincs csatlakoztatott eszköz.</p>'; return; }
+  for (i = 0; i < live.length; i++) {
+    var p = live[i], prof = profFor(p);
+    var va = p.vibrationActuator;
+    h += '<div style="margin-bottom:12px">' +
+      '<div class="who" style="margin-bottom:6px">' + p.id + '</div>' +
+      '<span class="tag">hely <b>' + (slots.indexOf(p.index) + 1 || '-') + '</b></span>' +
+      '<span class="tag">azonosító <b>' + padSig(p) + '</b></span>' +
+      '<span class="tag">gombok <b>' + p.buttons.length + '</b></span>' +
+      '<span class="tag">tengelyek <b>' + p.axes.length + '</b></span>' +
+      '<span class="tag">mapping <b>' + (p.mapping || 'nincs') + '</b></span>' +
+      '<span class="tag">profil <b style="color:' + (prof.guess ? 'var(--warn)' : 'var(--ok)') + '">' +
+        prof.name + '</b></span>' +
+      '<span class="tag">rezgés <b>' + (va && va.playEffect ? 'van' : 'nincs') + '</b></span>' +
+      '<div class="bits" id="bits' + p.index + '"></div>' +
+      '</div>';
+  }
+  $('devs').innerHTML = h;
+  for (i = 0; i < live.length; i++) {
+    var el = $('bits' + live[i].index), bh = '';
+    for (var b = 0; b < live[i].buttons.length; b++) bh += '<div class="bit" id="bit' + live[i].index + '_' + b + '">' + b + '</div>';
+    if (el) el.innerHTML = bh;
+  }
+}
+
+// ---------------------------------------------------------------- fociklus
+var advOn = false;
+
+/**
+ * Egy kepkocka munkaja. Kulon all a rAF-tol, hogy tesztbol egyesevel is
+ * lepteteheto legyen: rejtett fulon a bongeszo lelassitja az idozitoket,
+ * es akkor egy idozitos teszt megbizhatatlan.
+ */
+function tick() {
+  syncSlots();
+  if (calib) calibStep();
+
+  var ready = 0, allDone = 0, n = livePads().length;
+
+  for (var s = 0; s < 2; s++) {
+    var p = padAt(s);
+    var st = readPad(p);
+    var card = $('card' + s);
+    card.className = 'card p' + (s + 1) + (p ? '' : ' off');
+    $('who' + s).textContent = p ? p.id : 'nincs csatlakoztatva';
+    if (p) ready++;
+
+    var done = 0;
+    for (var i = 0; i < BUTTONS.length; i++) {
+      var id = BUTTONS[i].id;
+      if (st[id] && !calib) seen[s][id] = true;
+      if (seen[s][id]) done++;
+      var el = $('p' + s + '-' + id);
+      if (el) {
+        el.classList.toggle('done', !!seen[s][id]);
+        el.classList.toggle('on', !!st[id]);
+      }
+      var led = $('l' + s + '-' + id);
+      if (led) {
+        led.classList.toggle('done', !!seen[s][id]);
+        led.classList.toggle('on', !!st[id]);
+      }
+    }
+    if (done >= BUTTONS.length) allDone++;
+    var cnt = $('cnt' + s);
+    cnt.className = 'count' + (done >= BUTTONS.length ? ' all' : '');
+    cnt.innerHTML = !p ? ''
+      : done >= BUTTONS.length ? 'mind a 12 gomb működik'
+      : '<b>' + done + '</b> / 12 gomb kipróbálva, nyomd végig a többit';
+
+    if (advOn && p) {
+      for (var b2 = 0; b2 < p.buttons.length; b2++) {
+        var be = $('bit' + p.index + '_' + b2);
+        if (be) be.classList.toggle('on', p.buttons[b2].pressed || p.buttons[b2].value > 0.5);
+      }
+    }
+  }
+
+  // ---- verdikt
+  var v = $('verdict'), main, sub, cls;
+  if (ready >= 2 && allDone >= 2) {
+    cls = 'good'; main = 'MINDEN RENDBEN';
+    sub = '2 / 2 kontroller, mind a 24 gomb működik. Kezdhettek.';
+  } else if (ready >= 2) {
+    cls = 'half'; main = '2 / 2 KONTROLLER';
+    sub = 'Nyomd végig mindkét paden az összes gombot.';
+  } else if (ready === 1) {
+    cls = 'half'; main = '1 / 2 KONTROLLER';
+    sub = 'A másikat is dugd be, és nyomj meg rajta egy gombot.';
+  } else {
+    cls = 'bad'; main = 'NINCS KONTROLLER';
+    sub = n > 0 ? 'Nyomj meg rajta egy gombot.' : 'Dugd be, és nyomj meg rajta egy gombot.';
+  }
+  v.className = 'verdict ' + cls;
+  $('vmain').textContent = main;
+  $('vsub').textContent = sub;
+
+  if (advOn) drawDevices();
+}
+
+function frame() {
+  requestAnimationFrame(frame);
+  tick();
+}
+
+// ---------------------------------------------------------------- esemenyek
+window.addEventListener('gamepadconnected', function (e) { log('csatlakozott: ' + e.gamepad.id); });
+window.addEventListener('gamepaddisconnected', function () { log('lecsatlakozott egy kontroller'); });
+
+$('reset').onclick = function () { seen = [{}, {}]; log('gombteszt újraindult'); };
+$('advBtn').onclick = function () {
+  advOn = !advOn;
+  $('adv').classList.toggle('on', advOn);
+  this.textContent = advOn ? 'Haladó beállítások elrejtése' : 'Haladó beállítások';
+  devCache = '';
+};
+$('calibStart').onclick = function () { startCalib(padAt(0) ? 0 : 1); };
+$('calibSkip').onclick = function () { if (calib) calibNext(); };
+$('calibStop').onclick = function () { calib = null; $('calib').classList.remove('on'); log('bemérés megszakítva'); };
+$('calibReset').onclick = function () {
+  learned = {};
+  try { localStorage.removeItem('snesPadProfiles'); } catch (e) { /* privat mod */ }
+  devCache = '';
+  log('bemérések törölve, vissza a beépített kiosztásra');
+};
+$('swap').onclick = function () {
+  var t = slots[0]; slots[0] = slots[1]; slots[1] = t;
+  var u = seen[0]; seen[0] = seen[1]; seen[1] = u;
+  log('az 1. és a 2. kontroller felcserélve');
+};
+
+log('teszt elindult');
+if (!navigator.getGamepads) {
+  log('ez a böngésző nem ismeri a Gamepad API-t');
+  $('vsub').textContent = 'Ez a böngésző nem támogatja a kontrollereket.';
+}
+frame();
+
+// Fejlesztoi felulet: innen olvashato ki gepileg az allapot.
+window.__teszt = {
+  get slots() { return slots; },
+  get seen() { return seen; },
+  tick: tick,
+  readPad: readPad, profFor: profFor, livePads: livePads, padAt: padAt,
+  BUTTONS: BUTTONS, KEYS: KEYS
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+# A csomagnak nincs függősége, tehát ide alig kerül valami.
+node_modules/
+package-lock.json
+
+# Windows és macOS szemét
+Thumbs.db
+.DS_Store
+
+# Naplók
+*.log

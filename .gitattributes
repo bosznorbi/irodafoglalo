@@ -1,0 +1,5 @@
+# A sorvégeket a git intézi, de a Windows-os indítófájlnak MINDIG CRLF kell:
+# LF sorvégekkel a cmd.exe elszállhat a címkéken és a goto-n.
+* text=auto
+*.cmd text eol=crlf
+*.bat text eol=crlf
