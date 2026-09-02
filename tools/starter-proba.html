@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<title>Starter mérés</title>
+<style>
+  body { background:#12141a; color:#e6e9f0; font:14px/1.6 ui-monospace, Consolas, monospace; padding:24px; }
+  pre { background:#0d0f14; border:1px solid #333a4b; padding:14px; white-space:pre-wrap; }
+  .ok { color:#4ade80; } .bad { color:#f87171; }
+  #app canvas { width: 320px; }
+</style>
+</head>
+<body>
+<h1>Starter mérés</h1>
+<p>A starter teljes menete hamis padekkel: kapu, kör, győztes, újraindítás.</p>
+<pre id="out">mérés...</pre>
+
+<!-- A starter ezt a DOM-ot varja. -->
+<div id="fileWarn" hidden></div>
+<div id="app"><canvas id="jatek" width="960" height="540"></canvas></div>
+
+<script>
+// A rejtett bongeszofulon a requestAnimationFrame all, a setTimeout pedig
+// masodpercre lassul. Ezert a rAF-et egy KEZZEL LEPTETHETO sorra csereljuk:
+// igy a meres determinisztikus, es 60 masodpercnyi jatekot ezredmasodpercek
+// alatt le tudunk futtatni.
+window.__q = [];
+window.requestAnimationFrame = function (fn) { window.__q.push(fn); return window.__q.length; };
+window.__ora = 0;
+window.__pump = function (n, dtMs) {
+  for (var i = 0; i < n; i++) {
+    var q = window.__q;
+    window.__q = [];
+    window.__ora += (dtMs === undefined ? 16 : dtMs);
+    for (var k = 0; k < q.length; k++) q[k](window.__ora);
+  }
+};
+// A jatek performance.now()-t hasznal a dt-hez, tehat azt is a mi orankhoz
+// kotjuk, kulonben a valodi ido szerint szamolna.
+performance.now = function () { return window.__ora; };
+</script>
+
+<script type="module">
+import { pads } from '../starter/src/gamepad.js';
+import '../starter/src/jatek.js';
+
+const out = [];
+let pass = 0, fail = 0;
+const ok = (n, c, x) => {
+  if (c) { pass++; out.push('  ok    ' + n); }
+  else { fail++; out.push('  HIBA  ' + n + (x !== undefined ? '   >> ' + x : '')); }
+};
+const $ = (id) => document.getElementById(id);
+
+// --------------------------------------------------------------- hamis padek
+const mk = (index) => ({
+  index, id: 'usb gamepad           (Vendor: 081f Product: e401)', mapping: '',
+  connected: true,
+  buttons: Array.from({ length: 10 }, () => ({ pressed: false, value: 0 })),
+  axes: [0, 0, 0, 0],
+});
+const live = [mk(0), mk(1)];
+Object.defineProperty(navigator, 'getGamepads', {
+  configurable: true,
+  value: () => { const o = [null, null, null, null]; for (const p of live) o[p.index] = p; return o; },
+});
+const BI = { x: 0, a: 1, b: 2, y: 3, l: 4, r: 5, select: 8, start: 9 };
+const nyom = (pi, n, on) => {
+  if (n === 'up' || n === 'down') live[pi].axes[1] = on ? (n === 'up' ? -1 : 1) : 0;
+  else if (n === 'left' || n === 'right') live[pi].axes[0] = on ? (n === 'left' ? -1 : 1) : 0;
+  else { const i = BI[n]; live[pi].buttons[i].pressed = on; live[pi].buttons[i].value = on ? 1 : 0; }
+};
+/** Egy kepkocka: padmintavetel + jatekciklus. */
+const kocka = (dtMs) => { pads.update(); window.__pump(1, dtMs); };
+
+// --------------------------------------------------------------- meres
+kocka(16); kocka(16);
+
+ok('a kapu nyitva van indulaskor', !!document.querySelector('.pg-root'));
+ok('a jatek mar fut a kapu mogott', window.jatek && window.jatek.hatra > 0);
+ok('a billentyu-emulacio meg KI van kapcsolva', !padKuld());
+
+// A kapu alatt egy padgombnyomas nem szolhat bele a jatekba.
+nyom(0, 'start', true); kocka(16); nyom(0, 'start', false); kocka(16);
+ok('a kapu alatt nem megy billentyu a jatekba', window.jatek.nyomva.size === 0,
+  [...window.jatek.nyomva].join(','));
+
+// Kivalasztas: mindket jatekos foglal egy padet.
+nyom(1, 'start', true); for (let i = 0; i < 4; i++) kocka(16); nyom(1, 'start', false);
+for (let i = 0; i < 6; i++) kocka(16);
+nyom(0, 'start', true); for (let i = 0; i < 4; i++) kocka(16); nyom(0, 'start', false);
+for (let i = 0; i < 6; i++) kocka(16);
+ok('mindket jatekos kivalasztotta magat', pads.has(0) && pads.has(1));
+ok('a kapu meg NEM zart be egy koccintastol', !!document.querySelector('.pg-root'));
+
+// A START NYOMVA TARTASA inditja a jatekot.
+nyom(0, 'start', true);
+for (let i = 0; i < 60; i++) kocka(16);      // kb. 1 masodperc
+nyom(0, 'start', false);
+kocka(16);
+ok('nyomva tartasra bezarul a kapu', !document.querySelector('.pg-root'));
+ok('a billentyu-emulacio bekapcsolt', padKuld());
+
+// --------------------------------------------------------------- mozgas
+const j = window.jatek.jatekosok;
+const x0 = j[0].x, y1 = j[1].y;
+nyom(0, 'right', true); nyom(1, 'down', true);
+for (let i = 0; i < 20; i++) kocka(16);
+nyom(0, 'right', false); nyom(1, 'down', false);
+kocka(16);
+ok('az 1. pad jobbra mozgatja az 1. jatekost', j[0].x > x0 + 10, j[0].x + ' vs ' + x0);
+ok('a 2. pad lefele mozgatja a 2. jatekost', j[1].y > y1 + 10, j[1].y + ' vs ' + y1);
+ok('a ket jatekos nem keveredik ossze', Math.abs(j[1].x - 720) < 1, j[1].x);
+
+// --------------------------------------------------------------- pontszerzes
+window.jatek.jatekosok[0].pont = 3;
+window.jatek.jatekosok[1].pont = 1;
+
+// --------------------------------------------------------------- kor vege
+const maradt = window.jatek.hatra;
+ok('a kor egy percnel nem hosszabb', maradt <= 60 && maradt > 55, maradt);
+// 61 masodpercnyi jatek, 100 ms-os lepesekben
+for (let i = 0; i < 620; i++) kocka(100);
+ok('a kor egy percen belul veget er', window.jatek.vege === true, 'hatra=' + window.jatek.hatra);
+ok('a hatralevo ido nem megy negativba', window.jatek.hatra === 0, window.jatek.hatra);
+
+// --------------------------------------------------------------- ujraindulas
+const p0 = j[0].pont;
+nyom(1, 'start', true); kocka(16); nyom(1, 'start', false); kocka(16);
+ok('a 2. pad START gombja uj kort indit', window.jatek.vege === false);
+ok('a pontok nullazodtak', j[0].pont === 0 && j[1].pont === 0, j[0].pont + '-' + j[1].pont);
+ok('az ido visszaallt', window.jatek.hatra > 55, window.jatek.hatra);
+ok('a lap nem toltodott ujra', p0 === 3);
+
+nyom(0, 'start', true); kocka(16); nyom(0, 'start', false); kocka(16);
+ok('kor kozben a START nem indit ujat', window.jatek.hatra < 60.1);
+
+// --------------------------------------------------------------- eredmeny
+function padKuld() {
+  // Ugy allapitjuk meg, hogy megy-e az emulacio, hogy figyelunk egy
+  // billentyure, es megnyomunk egy padgombot.
+  let latott = false;
+  const fn = () => { latott = true; };
+  document.addEventListener('keydown', fn);
+  nyom(0, 'y', true); pads.update();
+  nyom(0, 'y', false); pads.update();
+  document.removeEventListener('keydown', fn);
+  return latott;
+}
+
+out.push('');
+out.push((fail ? 'BUKOTT: ' : 'RENDBEN: ') + pass + ' jo, ' + fail + ' hibas');
+const el = $('out');
+el.textContent = out.join('\n');
+el.className = fail ? 'bad' : 'ok';
+window.__proba = { pass, fail, text: out.join('\n') };
+</script>
+</body>
+</html>
