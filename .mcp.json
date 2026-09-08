@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "nitro-fejek": {
+      "type": "http",
+      "url": "https://nitro-arcade-mcp-production.up.railway.app/mcp"
+    }
+  }
+}
