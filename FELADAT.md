@@ -24,6 +24,14 @@ idáig, hanem innen kell valami sajátot csinálni.
 - **Játsszátok le tízszer az utolsó negyed órában.** Ami a bemutatón romlik
   el, azt már nem lesz idő megjavítani.
 
+## Kollégafejek
+
+A csomag tud egy MCP-szerverről, amiből az AI a kollégák kivágott, átlátszó
+hátterű fejét kéri le, és beteheti a játékba: játékosnak, ellenfélnek,
+célpontnak, bárminek. Opcionális: kérés nélkül az AI nem nyúl hozzá, ha
+kéritek, tudja, mit kell tennie. Részletek a [README.md](README.md)-ben és a
+`skill/kollegafejek/SKILL.md`-ben.
+
 ## Technológia
 
 Bármi, ami böngészőben fut: vanilla JavaScript, React, Phaser, Three.js, p5.

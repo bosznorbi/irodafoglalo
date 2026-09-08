@@ -17,14 +17,23 @@ Készítsd elő a projektet:
 - Ha a szerkesztőnek, amiben futsz, van projekt-szintű utasításhelye (Claude
   Code: .claude/skills/, Cursor: .cursor/rules/, Copilot:
   .github/copilot-instructions.md), tedd be oda is, hogy később is emlékezz
-  rá. A kész skill a skill/snes-kontroller mappában van. Ha nincs ilyen
-  helye, csak jelezd, és a fontos részeket majd emlékeztetőül bemásolom.
+  rá. A kész skillek a skill/ mappában vannak, egy almappa egy skill. Ha
+  nincs ilyen helye, csak jelezd, és a fontos részeket majd emlékeztetőül
+  bemásolom.
+- Ha nem Claude Code vagy, és a szerkesztődnek van MCP-konfig helye (Cursor:
+  .cursor/mcp.json, VS Code: .vscode/mcp.json), tedd be oda a gyökérben lévő
+  .mcp.json nitro-fejek szerverét is. A formátum a skill/kollegafejek/SKILL.md
+  fájlban van. Ez opcionális dolog, kérés nélkül ne használd.
 - Nyisd meg a kontroller-teszt.html fájlt a böngészőmben. Közvetlenül
   fájlként nyisd meg, ne kiszolgálón keresztül: az a fájl önmagában is
   működik, nem kell hozzá semmi.
 
 Utána szólj egy mondatban, és megyek kipróbálni a két kontrollert.
 ```
+
+Ha a Claude Code indulásnál rákérdez, hogy engedélyezed-e a projekt
+`nitro-fejek` MCP-szerverét, mondj igent. Ez a kollégafejek forrása (lásd
+lent), és csak akkor csinál bármit, ha kéritek.
 
 ## 2. Teszteld a kontrollereket
 
@@ -64,6 +73,18 @@ amíg nem tisztáztuk az ötletet.
 A játék ötlete:
 ```
 
+## Kollégafejek
+
+Opcionális. A csomag tud egy MCP-szerverről, amiből az AI a kollégák
+kivágott, átlátszó hátterű fejét kéri le, és beteszi a játékba: játékosnak,
+ellenfélnek, célpontnak, bárminek. Az AI kérés nélkül nem nyúl hozzá; amikor
+a kinézetről beszélgettek, egy mondatban megemlíti, a többi rajtatok áll. Ha
+kéritek, elég ennyi:
+
+```
+Tegyétek be a kollégák fejét a játékba. Az 1. játékos Tibi legyen, a 2. Patki.
+```
+
 ## Mi van a mappában
 
 | | |
@@ -72,6 +93,8 @@ A játék ötlete:
 | `starter/` | Kész, futó kétjátékos alap. Innen indul a fejlesztés. |
 | `AGENTS.md` | A projekt utasításfájlja az AI-nak. Sok szerkesztő magától beolvassa. |
 | `skill/snes-kontroller/` | Ugyanaz Claude Code formátumban, a `.claude/skills/` alá. |
+| `skill/kollegafejek/` | A kollégafejek beépítése: opcionális. Az `AGENTS.md`-ben is benne van. |
+| `.mcp.json` | A `nitro-fejek` MCP-szerver címe. Claude Code magától felajánlja. |
 | `FELADAT.md` | A feladat és a szabályok. |
 
 ## Bármilyen AI-eszközzel megy
