@@ -1,9 +1,15 @@
 /**
- * SZEKFOGLALO - kozos beallitasok es paletta.
+ * IRODAFOGLALO - kozos beallitasok es paletta.
  *
  * A paletta a VALODI iroda szineibol jon: szurke szonyeg, feher falak, uveges
  * targyalok. A ket jatekos szine erre ul ra, telt turkiz es narancs.
  */
+
+/** A jatek neve. Egy helyen all, hogy barhol atirhato legyen. */
+export const CIM = 'IRODAFOGLALÓ';
+
+/** Egysoros szabaly: ezt latja a jatekos a visszaszamlalasnal es a szunetben. */
+export const SZABALY = 'FESD BE A NITRO IRODA MINÉL NAGYOBB RÉSZÉT EGY PERC ALATT';
 
 /** A vaszon belso merete. A kep mindig kitolti az ablakot, aranytartoan. */
 export const W = 1280;
@@ -22,11 +28,18 @@ export const RIADO_TOL = 15;
 
 // ---------------------------------------------------------------- sebesseg
 
-export const JATEKOS_SEBESSEG = 182;   // px / masodperc
-export const NPC_SEBESSEG = 92;
-export const PATKI_SEBESSEG = 168;     // vadaszik, de lassabb a jatekosnal
-export const VARO_SEBESSEG = 78;       // ajtokban acsorog
-export const RIADO_SZORZO = 1.5;       // tuzriado alatt ennyiszer gyorsabb minden NPC
+// A JATEKOS MINDIG GYORSABB MINDEN NPC-NEL, a tuzriado alatt is. Ez szabaly:
+// el lehessen menekulni barki elol, kulonben a jatek igazsagtalannak erzodik.
+export const JATEKOS_SEBESSEG = 196;   // px / masodperc
+export const NPC_SEBESSEG = 96;
+export const PATKI_SEBESSEG = 150;     // vadaszik, de lassabb a jatekosnal
+export const VARO_SEBESSEG = 82;       // ajtokban acsorog
+export const RIADO_SZORZO = 1.45;      // tuzriado alatt ennyiszer gyorsabb a setalo NPC
+/** Patki a riado alatt sem gyorsul: igy sosem eri utol a jatekost. */
+export const PATKI_RIADO_SZORZO = 1;
+
+/** Ha Patki elkapott valakit, ennyi ideig bekén hagyja. */
+export const PATKI_SZUNET = 6.5;
 
 /** A festekcsik vastagsaga cellaban (sugar). 1.2 -> kb. 2 cella szeles nyom. */
 export const ECSET = 1.2;
@@ -34,8 +47,15 @@ export const ECSET = 1.2;
 /** Utkozes utan ennyi ideig serthetetlen es villog a jatekos. */
 export const SERTHETETLEN = 1.2;
 
-/** Utkozes utan ennyi ideig nem tud mozogni (megtorpan, de HELYBEN marad). */
-export const TORPEDES = 0.35;
+/** Visszaszamlalas hossza a kor elott. */
+export const VISSZASZAMLALAS = 3;
+
+/** A ket jatekos talalkozasakor ennyi ideig lehet lecsapni a masikra. */
+export const PARBAJ_IDO = 2.6;
+
+/** Villamkerdes: ennyi masodpercenkent bukkan fel, plusz veletlen. */
+export const KIHIVAS_ALAP = 5.5;
+export const KIHIVAS_SZORAS = 4;
 
 // ---------------------------------------------------------------- paletta
 //
@@ -44,10 +64,14 @@ export const TORPEDES = 0.35;
 export const PAL = {
   // padlo: szurke szonyeg
   szonyeg: '#9A9A98',
-  szonyegVil: '#A8A8A6',
-  szonyegSot: '#7D7E7C',
+  szonyegVil: '#A3A3A1',
+  szonyegSot: '#8E8F8D',
   szonyegBordo: '#A32330',
   szonyegSzurke: '#5C5F61',
+  fuga: '#7A7B79',
+  akcentBordo: '#8A4A50',
+  szobaNev: '#3C4042',
+  akcentSzurke: '#6E7072',
 
   // konyha: mas burkolat
   konyhaPadlo: '#6E7072',
@@ -56,6 +80,7 @@ export const PAL = {
   // falak es uveg
   fal: '#ECECEA',
   falVonal: '#B9B9B7',
+  falEl: '#54585B',
   uveg: '#CFE0E6',
 
   // butor
@@ -63,7 +88,8 @@ export const PAL = {
   asztalKek: '#1F3F7A',
   szek: '#2A2A2C',
 
-  riado: '#D62828',
+  riado: '#8C121F',
+  riadoVil: '#D62828',
 
   // kepernyo korul es feliratok
   hatter: '#14161c',
@@ -71,10 +97,29 @@ export const PAL = {
   feliratVil: '#ECECEA',
 };
 
-/** A ket jatekos szine: terulet, festekcsik, es a keret/kiemeles. */
+/**
+ * Valaszthato festekszinek. A karaktervalasztoban a FEL-LE nyillal lehet
+ * lapozni koztuk, uj karakter valasztasakor pedig sorsolunk egyet.
+ *
+ *   ter  - a bejatszott terulet szine
+ *   csik - a huzott festekcsik, vilagosabb
+ *   jel  - felirat es kiemeles, a legvilagosabb
+ */
+export const SZINEK = [
+  { nev: 'TÜRKIZ', ter: '#1B8E93', csik: '#3BE0E0', jel: '#66F0F0' },
+  { nev: 'NARANCS', ter: '#C46A18', csik: '#FFA92E', jel: '#FFC866' },
+  { nev: 'LILA', ter: '#6B3FA0', csik: '#B681F0', jel: '#CDA9FF' },
+  { nev: 'ZÖLD', ter: '#2E7D32', csik: '#66DD70', jel: '#9BF0A2' },
+  { nev: 'PINK', ter: '#B02A6B', csik: '#FF6FB0', jel: '#FFA3CC' },
+  { nev: 'KÉK', ter: '#1F4FA8', csik: '#5B9BFF', jel: '#96C2FF' },
+  { nev: 'SÁRGA', ter: '#B8860B', csik: '#FFD644', jel: '#FFE98A' },
+  { nev: 'PIROS', ter: '#B02020', csik: '#FF5A5A', jel: '#FF9A9A' },
+];
+
+/** A ket jatekos alapszine es neve. A szint a valasztoban felul lehet irni. */
 export const CSAPAT = [
-  { nev: '1. JÁTÉKOS', ter: '#1B8E93', csik: '#3BE0E0', jel: '#66F0F0' },
-  { nev: '2. JÁTÉKOS', ter: '#C46A18', csik: '#FFA92E', jel: '#FFC866' },
+  { nev: '1. JÁTÉKOS', ...SZINEK[0] },
+  { nev: '2. JÁTÉKOS', ...SZINEK[1] },
 ];
 
 /** Az NPC-k ingszine. A ket fo zavaro kap sajat, veszelyt jelzo szint. */
@@ -125,7 +170,7 @@ export function arnyal(hex, arany) {
 export const GOMB = {
   y: { nev: 'ZÖLD', szin: '#3FBF5F', kod: ['KeyF', 'KeyJ'] },
   x: { nev: 'KÉK', szin: '#3B7FD6', kod: ['KeyT', 'KeyI'] },
-  a: { nev: 'PIROS', szin: '#D62828', kod: ['KeyH', 'KeyL'] },
+  a: { nev: 'PIROS', szin: '#E03A3A', kod: ['KeyH', 'KeyL'] },
   b: { nev: 'SÁRGA', szin: '#E8B21F', kod: ['KeyG', 'KeyK'] },
 };
 

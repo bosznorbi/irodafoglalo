@@ -7,13 +7,13 @@
  * Barmelyik pad START gombja (vagy ENTER / SPACE) viszi tovabb.
  */
 
-import { W, H, PAL, CSAPAT, START } from './config.js';
+import { W, H, PAL, CSAPAT, CIM as JATEK_CIM } from './config.js';
 import { drawText, textWidth } from './font.js';
 import { figuraKerd, SPRITE_W, SPRITE_H } from './karakter.js';
 import { logoPixel } from './palya.js';
 import { hangValaszt } from './zene.js';
 
-const CIM = 'SZÉKFOGLALÓ';
+const CIM = JATEK_CIM;
 
 export function cimkepernyo({ ctx, kollegak, jellemzok, logoKep, hatterRajz }) {
   return new Promise((kesz) => {
@@ -41,9 +41,10 @@ export function cimkepernyo({ ctx, kollegak, jellemzok, logoKep, hatterRajz }) {
 
     function gomb(e) {
       if (!fut) return;
-      const jo = (!e.isTrusted && START.includes(e.code))
-        || (e.isTrusted && (e.code === 'Enter' || e.code === 'Space'));
-      if (!jo) return;
+      // Barmilyen gomb tovabbvisz: a pad barmelyik gombja es a billentyuzet is.
+      // A modositobillentyuk (Shift, Ctrl, Alt) nem szamitanak, mert azokat
+      // veletlenul is le lehet nyomni.
+      if (e.key === 'Shift' || e.key === 'Control' || e.key === 'Alt' || e.key === 'Meta') return;
       e.preventDefault();
       fut = false;
       hangValaszt();
@@ -104,7 +105,7 @@ export function cimkepernyo({ ctx, kollegak, jellemzok, logoKep, hatterRajz }) {
 
       // --- villogo felhivas
       if (Math.floor(ido * 1.6) % 2 === 0) {
-        drawText(ctx, 'NYOMD MEG A START GOMBOT', W / 2, 452, { scale: 4, color: PAL.feliratVil, shadow: '#07090d', align: 'center' });
+        drawText(ctx, 'NYOMJ MEG BÁRMILYEN GOMBOT', W / 2, 452, { scale: 4, color: PAL.feliratVil, shadow: '#07090d', align: 'center' });
       }
 
       drawText(ctx, 'M: NÉMÍTÁS    F11: TELJES KÉPERNYŐ', W / 2, H - 46, { scale: 1, color: PAL.felirat, shadow: null, align: 'center' });
