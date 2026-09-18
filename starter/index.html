@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Kétjátékos alap</title>
+<title>Székfoglaló</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -11,7 +12,7 @@
 <!--
   Ha valaki DUPLA KATTINTASSAL nyitja meg ezt a fajlt, a bongeszo file://
   cimen tolti be, ES modult pedig onnan nem tolt be (CORS). Az eredmeny egy
-  nema, ures lap, es fel ora keresgeles. Ezert szolunk elore.
+  nema, ures lap. Ezert szolunk elore.
 -->
 <div id="fileWarn" hidden>
   <h1>Így nem fog elindulni</h1>
@@ -20,20 +21,13 @@
   <p>Zárd be ezt az ablakot, és indítsd az <b>INDITAS.cmd</b> fájllal.</p>
 </div>
 
-<div id="app">
-  <canvas id="jatek" width="960" height="540"></canvas>
-  <p class="sugo">
-    1. játékos: <b>W A S D</b> &nbsp;·&nbsp; 2. játékos: <b>nyilak</b>
-    &nbsp;·&nbsp; újraindítás a kör végén: <b>START</b> a kontrolleren
-    &nbsp;·&nbsp; teljes képernyő: <b>F11</b>
-  </p>
-</div>
+<canvas id="jatek" width="1280" height="720"></canvas>
 
 <script>
   // Ez a guard direkt sima szkript, nem modul: modulkent el sem indulna.
   if (location.protocol === 'file:') {
     document.getElementById('fileWarn').hidden = false;
-    document.getElementById('app').hidden = true;
+    document.getElementById('jatek').hidden = true;
   }
 </script>
 <script type="module" src="src/jatek.js"></script>
