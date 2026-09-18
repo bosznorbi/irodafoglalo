@@ -72,15 +72,15 @@ function utem() {
   const belso = lepes % 8;
 
   // basszus: minden masodik nyolcadon
-  if (belso % 2 === 0) hangSav('triangle', hz(akk.alap), t, nyolcad() * 1.6, 0.20, zeneKi);
+  if (belso % 2 === 0) hangSav('triangle', hz(akk.alap), t, nyolcad() * 1.6, 0.34, zeneKi);
 
   // vezetoszolam
   const h = akk.hangok[DALLAM[belso]];
-  hangSav('square', hz(h + 12), t, nyolcad() * 0.85, 0.075, zeneKi);
+  hangSav('square', hz(h + 12), t, nyolcad() * 0.85, 0.17, zeneKi);
 
   // dob: lab az 1. es 5. nyolcadon, lábcin minden masodikon
-  if (belso === 0 || belso === 4) hangSav('sine', 68, t, 0.13, 0.32, zeneKi);
-  if (belso % 2 === 1) zorej(t, 0.035, 0.05, zeneKi);
+  if (belso === 0 || belso === 4) hangSav('sine', 68, t, 0.13, 0.44, zeneKi);
+  if (belso % 2 === 1) zorej(t, 0.035, 0.1, zeneKi);
 
   lepes++;
 }
@@ -95,7 +95,7 @@ export function indit() {
   fo.gain.value = 0.5;
   fo.connect(ac.destination);
   zeneKi = ac.createGain();
-  zeneKi.gain.value = 0.55;
+  zeneKi.gain.value = 1.7;
   zeneKi.connect(fo);
 }
 
