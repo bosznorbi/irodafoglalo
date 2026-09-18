@@ -64,7 +64,14 @@ function lakat(ctx, x, y, m, szin) {
 
 export function karakterValaszto({ ctx, kollegak, jellemzok, kiemelt = [], hatterRajz }) {
   return new Promise((kesz) => {
-    const veletlenSzin = () => (Math.random() * SZINEK.length) | 0;
+    /** Veletlen szin, de sosem az, amit a masik jatekos eppen visel. */
+    const veletlenSzin = (i) => {
+      const tiltott = allapot && allapot[1 - i] ? allapot[1 - i].szin : -1;
+      let sz = (Math.random() * SZINEK.length) | 0;
+      let proba = 0;
+      while (sz === tiltott && proba++ < 20) sz = (Math.random() * SZINEK.length) | 0;
+      return sz;
+    };
     // A ket oldal NE ugyanazzal a kollegaval induljon: a masodik tavolabbrol
     // kezd, kulonben elsore ugyanaz az arc nez vissza mindket oldalrol.
     const allapot = [0, 1].map((i) => ({
@@ -90,13 +97,23 @@ export function karakterValaszto({ ctx, kollegak, jellemzok, kiemelt = [], hatte
       const l = lista(i);
       if (!l.length) return;
       allapot[i].mutat = (allapot[i].mutat + d + l.length) % l.length;
-      allapot[i].szin = veletlenSzin();
+      allapot[i].szin = veletlenSzin(i);
       allapot[i].villan = 0.25;
       hangLepes();
     }
 
+    /**
+     * Szinlapozas. A masik jatekos szinet ATUGORJUK: ket egyforma szinnel
+     * kovethetetlen lenne, ki hol fest.
+     */
     function szinLep(i, d) {
-      allapot[i].szin = (allapot[i].szin + d + SZINEK.length) % SZINEK.length;
+      const tiltott = allapot[1 - i].szin;
+      let sz = allapot[i].szin;
+      for (let k = 0; k < SZINEK.length; k++) {
+        sz = (sz + d + SZINEK.length) % SZINEK.length;
+        if (sz !== tiltott) break;
+      }
+      allapot[i].szin = sz;
       hangLepes();
     }
 

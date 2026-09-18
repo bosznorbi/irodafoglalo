@@ -30,10 +30,10 @@ export const RIADO_TOL = 15;
 
 // A JATEKOS MINDIG GYORSABB MINDEN NPC-NEL, a tuzriado alatt is. Ez szabaly:
 // el lehessen menekulni barki elol, kulonben a jatek igazsagtalannak erzodik.
-export const JATEKOS_SEBESSEG = 196;   // px / masodperc
-export const NPC_SEBESSEG = 96;
-export const PATKI_SEBESSEG = 150;     // vadaszik, de lassabb a jatekosnal
-export const VARO_SEBESSEG = 82;       // ajtokban acsorog
+export const JATEKOS_SEBESSEG = 226;   // px / masodperc
+export const NPC_SEBESSEG = 110;
+export const PATKI_SEBESSEG = 172;     // vadaszik, de lassabb a jatekosnal
+export const VARO_SEBESSEG = 94;       // ajtokban acsorog
 export const RIADO_SZORZO = 1.45;      // tuzriado alatt ennyiszer gyorsabb a setalo NPC
 /** Patki a riado alatt sem gyorsul: igy sosem eri utol a jatekost. */
 export const PATKI_RIADO_SZORZO = 1;

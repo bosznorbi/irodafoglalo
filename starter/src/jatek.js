@@ -18,7 +18,7 @@ import {
   ECSET, SERTHETETLEN, VISSZASZAMLALAS, PARBAJ_IDO, KIHIVAS_ALAP, KIHIVAS_SZORAS,
   PAL, CSAPAT, SZINEK, NPC_SZIN, PATKI_SZIN, VARO_SZIN,
   URES, terKod, csikKod, rgb, mulberry32,
-  GOMB, START, IRANY, gombKod,
+  GOMB, START, SELECT, IRANY, gombKod,
 } from './config.js';
 import {
   palyaEpit, falakRajz, padloRajz, fugaRajz, feliratRajz, szobaKozep, logoPixel,
@@ -38,8 +38,14 @@ import * as zene from './zene.js';
 const PATKI_ID = 'ferenczi_balazs';
 const VARO_ID = 'varjasy_gabor';
 
-/** Ennyi kollega zavar a palyan. */
+/** Ennyi kollega zavar a palyan a kor VEGERE. */
 const NPC_DB = 10;
+
+/** Ennyivel indul a kor: eleinte legyen leveg, a vegen legyen zsufolt. */
+const NPC_KEZDO = 4;
+
+/** Az utolso erkezo ekkorra ér be, a kor hosszanak aranyaban. */
+const NPC_ERKEZES_VEGE = 0.72;
 
 /** A figura ekkorara nagyitva jelenik meg: 16x20 art keppont -> 48x60. */
 const NAGYITAS = 3;
@@ -56,9 +62,9 @@ const KABULAT = 1.6;
 const NPC_FAJTA = {
   patki: { seb: PATKI_SEBESSEG, riado: PATKI_RIADO_SZORZO, szin: PATKI_SZIN, fo: true },
   varo: { seb: VARO_SEBESSEG, riado: 1.2, szin: VARO_SZIN, fo: true },
-  kerget: { seb: 124, riado: RIADO_SZORZO },
-  lesben: { seb: 118, riado: RIADO_SZORZO },
-  folyoso: { seb: 110, riado: RIADO_SZORZO },
+  kerget: { seb: 142, riado: RIADO_SZORZO },
+  lesben: { seb: 136, riado: RIADO_SZORZO },
+  folyoso: { seb: 126, riado: RIADO_SZORZO },
   bolyong: { seb: NPC_SEBESSEG, riado: RIADO_SZORZO },
 };
 
@@ -358,16 +364,56 @@ function jatekosLetrehoz(i, kollega, szin) {
   };
 }
 
-function npcLetrehoz(kollega, fajta, kezd) {
+function npcLetrehoz(kollega, fajta, celJatekos) {
   const f = NPC_FAJTA[fajta];
   const szin = f.szin || NPC_SZIN[(rng() * NPC_SZIN.length) | 0];
   return {
     kollega, fajta, szin, f,
     figura: figuraKerd(jellemzok.get(kollega.id), kollega.id, szin),
-    x: kezd.x, y: kezd.y, r: 7,
+    x: 0, y: 0, r: 7,
     dx: rng() < 0.5 ? -1 : 1, dy: 0,
     cel: null, valt: 0, szunet: 0, jar: 0,
+    /** Melyik jatekost szemelte ki. Igy nem esik mindenki ugyanarra. */
+    celJatekos,
+    /** Bolyongoknal a kiszemelt szoba: ettol teritik be a palyat. */
+    celSzoba: null,
+    /** Amig false, nincs a palyan. A kor folyaman sorra beerkeznek. */
+    aktiv: false,
+    erkezik: 0,
   };
+}
+
+/**
+ * A folyoso ket vege. Az erkezo kollegak itt setalnak be, mintha a lepcsohaz
+ * vagy a bejarat felol jonnenek.
+ */
+function folyosoBejaratok() {
+  const ki = [];
+  for (const gx of [4, GW - 5]) {
+    for (let gy = 38; gy <= 52; gy++) {
+      if (!fal[cellaIdx(gx, gy)]) { ki.push({ x: gx * CELL + CELL / 2, y: gy * CELL + CELL / 2 }); break; }
+    }
+  }
+  return ki.length ? ki : [{ x: W / 2, y: H / 2 }];
+}
+
+/** Az a szoba, ahol EPPEN a legkevesebb szereplo van. Igy teritik be a palyat. */
+function ritkaSzoba(kerul) {
+  let jo = null;
+  let legjobb = Infinity;
+  for (const sz of szobak) {
+    if (kerul && kerul.includes(sz.id)) continue;
+    const kp = szobaKozep(sz);
+    let db = 0;
+    for (const n of npck) {
+      if (!n.aktiv) continue;
+      if (Math.hypot(n.x - kp.x, n.y - kp.y) < 170) db++;
+    }
+    // kis veletlen, hogy ne mindig ugyanoda induljanak
+    const pont = db + rng() * 0.9;
+    if (pont < legjobb) { legjobb = pont; jo = sz; }
+  }
+  return jo || szobak[0];
 }
 
 // ---------------------------------------------------------------- mozgas
@@ -466,13 +512,25 @@ function jatekosLep(j, dt) {
 
 // ---------------------------------------------------------------- NPC
 
-/** A legkozelebbi jatekos. */
-function kozelebbi(n) {
-  const [a, b] = jatekosok;
-  return Math.hypot(a.x - n.x, a.y - n.y) <= Math.hypot(b.x - n.x, b.y - n.y) ? a : b;
+/**
+ * Kit kovet ez a kollega. Minden uldozo KAPOTT egy jatekost, felvaltva, hogy
+ * ne szakadjon ra mindenki ugyanarra: az igazsagtalan lenne.
+ */
+function kiszemelt(n) {
+  return jatekosok[n.celJatekos % 2] || jatekosok[0];
 }
 
+/**
+ * Egy kollega lepese. A butorutkozes a BURKOLOBAN fut, nem itt: igy egyetlen
+ * viselkedes sem maradhat ki belole, es mindenkinek akadaly az asztal.
+ * Tolni nem tudja, csak megall elotte.
+ */
 function npcLep(n, dt) {
+  npcLepBelso(n, dt);
+  butorUtkozes(n, false);
+}
+
+function npcLepBelso(n, dt) {
   const szorzo = riado ? n.f.riado : 1;
   const seb = n.f.seb * szorzo;
   n.valt -= dt;
@@ -487,13 +545,12 @@ function npcLep(n, dt) {
       const dx = cel.x - n.x;
       const dy = cel.y - n.y;
       if (!mozog(n, dx, dy, seb, dt)) mozog(n, -dy, dx, seb, dt);
-      butorUtkozes(n, false);
       return;
     }
   }
 
   if (n.fajta === 'kerget' && vadaszhat) {
-    const j = kozelebbi(n);
+    const j = kiszemelt(n);
     const dx = j.x - n.x;
     const dy = j.y - n.y;
     if (!mozog(n, dx, dy, seb, dt)) mozog(n, -dy, dx, seb, dt);
@@ -502,7 +559,7 @@ function npcLep(n, dt) {
 
   if (n.fajta === 'lesben' && vadaszhat) {
     // Nem oda megy, ahol a jatekos van, hanem ele: igy elvagja az utat.
-    const j = kozelebbi(n);
+    const j = kiszemelt(n);
     const cx = j.x + j.dx * 150;
     const cy = j.y + j.dy * 150;
     const dx = cx - n.x;
@@ -539,14 +596,19 @@ function npcLep(n, dt) {
     return;
   }
 
-  if (n.valt <= 0) {
-    const szog = rng() * Math.PI * 2;
-    n.dx = Math.cos(szog);
-    n.dy = Math.sin(szog);
-    n.valt = 1 + rng() * 2.5;
+  // Bolyongo: nem veletlen iranyba megy, hanem a legritkabb szoba fele. Igy
+  // szetteritik magukat a palyan, ahelyett hogy egy kupacba tomorulnenek.
+  if (!n.celSzoba || n.valt <= 0) {
+    n.celSzoba = ritkaSzoba(null);
+    n.valt = 5 + rng() * 4;
   }
-  if (!mozog(n, n.dx, n.dy, seb, dt)) n.valt = 0;
-  butorUtkozes(n, false);
+  const kp = szobaKozep(n.celSzoba);
+  const tav = Math.hypot(kp.x - n.x, kp.y - n.y);
+  if (tav < 40) { n.celSzoba = ritkaSzoba([n.celSzoba.id]); n.valt = 5 + rng() * 4; }
+  if (!mozog(n, kp.x - n.x, kp.y - n.y, seb, dt)) {
+    // falnak ment: oldalra kerul
+    if (!mozog(n, -(kp.y - n.y), kp.x - n.x, seb, dt)) n.valt = 0;
+  }
 }
 
 function patkiCel() {
@@ -592,6 +654,7 @@ function utkozesek(dt) {
   for (const j of jatekosok) {
     if (j.serthetetlen > 0 || j.kabult > 0 || j.immunis > 0) continue;
     for (const n of npck) {
+      if (!n.aktiv) continue;
       if (Math.hypot(j.x - n.x, j.y - n.y) > j.r + n.r + 2) continue;
       kabit(j.i, j.kollega.becenev + ' nekiment: ' + n.kollega.becenev, n.szin);
       if (n.fajta === 'patki') n.szunet = PATKI_SZUNET;
@@ -768,15 +831,34 @@ function ujKor() {
     j.serthetetlen = SERTHETETLEN;
     j.gyors = 0; j.lassu = 0; j.immunis = 0; j.ecset = 1; j.ecsetIdo = 0;
   }
-  for (const n of npck) {
-    const sz = szobak[(rng() * szobak.length) | 0];
-    const k = szobaKozep(sz);
-    n.x = k.x;
-    n.y = k.y;
+  // Az NPC-k erkezese. A kor elejen csak nehanyan vannak a palyan, a tobbi
+  // menet kozben setal be a folyoso ket vegen: a vege fele lesz zsufolt.
+  //
+  // A ket jatekos KEZDOSZOBAJABA nem sorsolunk senkit: bosszanto lenne, ha az
+  // elso masodpercben mar valaki az arcodba setal.
+  const tiltott = helyek.map((h) => h.szoba);
+  const szabadSzobak = szobak.filter((sz) => !tiltott.includes(sz.id));
+  npck.forEach((n, i) => {
     n.cel = null;
     n.valt = 0;
     n.szunet = 0;
-  }
+    n.celSzoba = null;
+    if (i < NPC_KEZDO) {
+      const sz = szabadSzobak[(rng() * szabadSzobak.length) | 0] || szobak[0];
+      const k = szobaKozep(sz);
+      n.x = k.x;
+      n.y = k.y;
+      n.aktiv = true;
+      n.erkezik = 0;
+    } else {
+      // egyenletesen elosztva erkeznek be
+      const arany = (i - NPC_KEZDO + 1) / (npck.length - NPC_KEZDO + 1);
+      n.erkezik = KOR_HOSSZ * (1 - arany * NPC_ERKEZES_VEGE);
+      n.aktiv = false;
+      n.x = -999;
+      n.y = -999;
+    }
+  });
   butorok = butorokEpit(szobak, fal);
   hatra = KOR_HOSSZ;
   vissza = VISSZASZAMLALAS;
@@ -819,7 +901,9 @@ function lepes(dt) {
 
   // --- szunet
   if (mod === 'szunet') {
-    if (START.some((k) => mostNyomott.includes(k))) { mod = 'jatek'; nyomva.clear(); }
+    if (START.some((k) => mostNyomott.includes(k))) { mod = 'jatek'; nyomva.clear(); return; }
+    // SELECT a szunetben: feladjuk ezt a meccset, es megyunk a valasztoba.
+    if (SELECT.some((k) => mostNyomott.includes(k))) { kilepes = 'menu'; return; }
     return;
   }
 
@@ -858,9 +942,22 @@ function lepes(dt) {
     uzenet('TŰZRIADÓ! MINDENKI PÁNIKOL', PAL.riado, 2.6);
   }
 
+  // Beerkezik-e valaki? A folyoso ket vegen setalnak be.
+  const bejarat = folyosoBejaratok();
+  for (const n of npck) {
+    if (n.aktiv || hatra > n.erkezik) continue;
+    const b = bejarat[(rng() * bejarat.length) | 0];
+    n.x = b.x;
+    n.y = b.y;
+    n.aktiv = true;
+    n.celSzoba = null;
+    bumm(n.x, n.y, n.szin, 10, 0.5);
+    uzenet(n.kollega.becenev + ' beért az irodába', PAL.feliratVil, 1.3);
+  }
+
   parbajLep(dt);
   for (const j of jatekosok) jatekosLep(j, dt);
-  for (const n of npck) npcLep(n, dt);
+  for (const n of npck) if (n.aktiv) npcLep(n, dt);
   utkozesek(dt);
   kaveLep(dt);
   kihivasLep(dt);
@@ -1005,6 +1102,78 @@ function nevRajz(e, jatekos) {
   }
 }
 
+/**
+ * A szines gombos bonusz. Ez KORABBAN egy kis kor volt, es eszre sem lehetett
+ * venni jatek kozben. Most egy szeles, lukteto panel: terjedo gyuruk, nagy
+ * szinkor, a bonusz neve nagy betuvel, es fogyo idosav. Berepul, majd kirepul.
+ */
+function kihivasRajz() {
+  const g = GOMB[kihivas.gomb];
+  const hossz = 3.2;
+  const eltelt = hossz - kihivas.t;
+  // berepules az elso negyed masodpercben, kirepules az utolsoban
+  const be = Math.min(1, eltelt / 0.22);
+  const ki = Math.min(1, kihivas.t / 0.22);
+  const anim = Math.min(be, ki);
+  if (anim <= 0) return;
+
+  const kx = W / 2;
+  const ky = 176;
+  const pw = 640;
+  const ph = 120;
+
+  c.save();
+  c.translate(kx, ky);
+  c.scale(0.8 + anim * 0.2, 0.8 + anim * 0.2);
+  c.globalAlpha = anim;
+  c.translate(-kx, -ky);
+
+  // hattergyuruk, kifele terjedve
+  for (let i = 0; i < 3; i++) {
+    const p = ((ido * 1.1 + i / 3) % 1);
+    c.strokeStyle = g.szin;
+    c.globalAlpha = anim * (1 - p) * 0.5;
+    c.lineWidth = 5;
+    c.beginPath();
+    c.arc(kx - 210, ky, 30 + p * 62, 0, Math.PI * 2);
+    c.stroke();
+  }
+  c.globalAlpha = anim;
+
+  // panel
+  c.fillStyle = 'rgba(10,12,17,0.9)';
+  c.fillRect(kx - pw / 2, ky - ph / 2, pw, ph);
+  const vil = 0.6 + Math.abs(Math.sin(ido * 7)) * 0.4;
+  c.globalAlpha = anim * vil;
+  c.fillStyle = g.szin;
+  c.fillRect(kx - pw / 2, ky - ph / 2, pw, 5);
+  c.fillRect(kx - pw / 2, ky + ph / 2 - 5, pw, 5);
+  c.fillRect(kx - pw / 2, ky - ph / 2, 5, ph);
+  c.fillRect(kx + pw / 2 - 5, ky - ph / 2, 5, ph);
+  c.globalAlpha = anim;
+
+  // a gomb szinkore, nagyban
+  gombKor(kx - 210, ky, 34, g.szin, ido);
+
+  drawText(c, 'ELSŐNEK NYOMD!', kx - 150, ky - 40, {
+    scale: 3, color: PAL.feliratVil, shadow: '#07090d', outline: '#0b0d12',
+  });
+  drawText(c, kihivas.bonusz.nev, kx - 150, ky - 2, {
+    scale: 4, color: g.szin, shadow: '#07090d', outline: '#0b0d12',
+  });
+
+  // fogyo idosav
+  const sw = pw - 200;
+  const sx = kx - 150;
+  c.fillStyle = '#1b1f28';
+  c.fillRect(sx, ky + 36, sw, 10);
+  c.fillStyle = g.szin;
+  c.fillRect(sx, ky + 36, Math.max(0, sw * (kihivas.t / hossz)), 10);
+
+  c.restore();
+  c.globalAlpha = 1;
+}
+
 function hudRajz() {
   const a = allas();
   const ossz = Math.max(0.0001, a[0] + a[1]);
@@ -1038,11 +1207,7 @@ function hudRajz() {
     if (szobaDb[i]) drawText(c, szobaDb[i] + ' SZOBA', tx, 88, { scale: 2, color: j.szin.jel, shadow: '#0b0d12', outline: '#0b0d12', align });
   }
 
-  if (kihivas) {
-    const g = GOMB[kihivas.gomb];
-    gombKor(W / 2, 168, 28, g.szin, ido);
-    drawText(c, kihivas.bonusz.nev, W / 2, 208, { scale: 2, color: g.szin, shadow: '#0b0d12', outline: '#0b0d12', align: 'center' });
-  }
+  if (kihivas) kihivasRajz();
 
   if (parbaj) {
     const g = GOMB[parbaj.gomb];
@@ -1058,16 +1223,63 @@ function hudRajz() {
   });
 }
 
+/**
+ * Visszaszamlalas. A sotetites LYUKAS: a ket kezdohely korul vilagos marad,
+ * es lukteto gyuru meg lefele mutato nyil jelzi, hol allsz. Igy a jatekos meg
+ * indulas elott megtalalja magat a palyan.
+ */
 function visszaRajz() {
-  c.fillStyle = 'rgba(10,12,17,0.72)';
-  c.fillRect(0, 0, W, H);
+  // sotetites, a ket jatekos korul kivagott korrel
+  c.save();
+  c.fillStyle = 'rgba(10,12,17,0.74)';
+  c.beginPath();
+  c.rect(0, 0, W, H);
+  for (const j of jatekosok) {
+    c.moveTo(j.x + 110, j.y);
+    c.arc(j.x, j.y, 110, 0, Math.PI * 2, true);
+  }
+  c.fill('evenodd');
+  c.restore();
+
+  // lukteto gyuru es nyil a ket jatekos felett
+  for (const j of jatekosok) {
+    const p = (ido * 1.6) % 1;
+    c.strokeStyle = j.szin.jel;
+    c.lineWidth = 4;
+    c.globalAlpha = 1 - p;
+    c.beginPath();
+    c.ellipse(j.x, j.y + 4, 40 + p * 70, 16 + p * 28, 0, 0, Math.PI * 2);
+    c.stroke();
+    c.globalAlpha = 1;
+
+    c.strokeStyle = j.szin.jel;
+    c.lineWidth = 3;
+    c.beginPath();
+    c.ellipse(j.x, j.y + 4, 34, 14, 0, 0, Math.PI * 2);
+    c.stroke();
+
+    // lefele mutato nyil, finoman pattogva
+    const ny = j.y - RAJZ_H - 24 + Math.sin(ido * 5) * 6;
+    c.fillStyle = j.szin.jel;
+    for (let i = 0; i < 6; i++) {
+      const w = (6 - i) * 6;
+      c.fillRect(Math.round(j.x - w / 2), Math.round(ny + i * 5), w, 5);
+    }
+    drawText(c, j.kollega.becenev.toUpperCase(), j.x, ny - 34, {
+      scale: 3, color: j.szin.jel, shadow: '#07090d', outline: '#0b0d12', align: 'center',
+    });
+    drawText(c, 'ITT KEZDESZ', j.x, j.y + 42, {
+      scale: 2, color: PAL.feliratVil, shadow: '#07090d', outline: '#0b0d12', align: 'center',
+    });
+  }
+
   const n = Math.ceil(vissza);
   const p = 1 - (vissza - Math.floor(vissza));
   const m = 10 + (1 - p) * 6;
-  drawText(c, CIM, W / 2, 130, { scale: 5, color: PAL.feliratVil, shadow: '#07090d', outline: '#0b0d12', align: 'center' });
-  drawText(c, SZABALY, W / 2, 210, { scale: 3, color: jatekosok[0].szin.jel, shadow: '#07090d', align: 'center' });
-  drawText(c, String(n), W / 2, H / 2 - 20, { scale: m, color: PAL.feliratVil, shadow: '#07090d', outline: '#0b0d12', align: 'center' });
-  drawText(c, 'START: SZÜNET    M: NÉMÍTÁS', W / 2, H - 90, { scale: 2, color: PAL.szonyegVil, shadow: '#07090d', align: 'center' });
+  drawText(c, CIM, W / 2, 40, { scale: 4, color: PAL.feliratVil, shadow: '#07090d', outline: '#0b0d12', align: 'center' });
+  drawText(c, SZABALY, W / 2, 92, { scale: 2, color: PAL.szonyegVil, shadow: '#07090d', outline: '#0b0d12', align: 'center' });
+  drawText(c, String(n), W / 2, H / 2 - 60, { scale: m, color: PAL.feliratVil, shadow: '#07090d', outline: '#0b0d12', align: 'center' });
+  drawText(c, 'START: SZÜNET    M: NÉMÍTÁS', W / 2, H - 46, { scale: 2, color: PAL.szonyegVil, shadow: '#07090d', outline: '#0b0d12', align: 'center' });
 }
 
 function szunetRajz() {
@@ -1078,6 +1290,8 @@ function szunetRajz() {
   if (Math.floor(ido * 1.8) % 2 === 0) {
     drawText(c, 'START: FOLYTATÁS', W / 2, 420, { scale: 4, color: jatekosok[0].szin.jel, shadow: '#07090d', outline: '#0b0d12', align: 'center' });
   }
+  drawText(c, 'SELECT: KILÉPÉS A KARAKTERVÁLASZTÓBA', W / 2, 486, { scale: 2, color: PAL.szonyegVil, shadow: '#07090d', align: 'center' });
+  drawText(c, 'EZZEL EZ A MECCS VÉGET ÉR', W / 2, 514, { scale: 1, color: PAL.felirat, shadow: null, align: 'center' });
 }
 
 function vegKepRajz() {
@@ -1149,7 +1363,7 @@ function rajzol() {
     c.fillRect(kave.x + 8, kave.y - 5 + p, 4, 7);
   }
 
-  const mind = [...npck.map((n) => ({ e: n, j: false })), ...jatekosok.map((j) => ({ e: j, j: true }))];
+  const mind = [...npck.filter((n) => n.aktiv).map((n) => ({ e: n, j: false })), ...jatekosok.map((j) => ({ e: j, j: true }))];
   mind.sort((a, b) => a.e.y - b.e.y);
   for (const { e, j } of mind) figuraRajz(e, j);
   for (const { e, j } of mind) nevRajz(e, j);
@@ -1249,7 +1463,7 @@ function csapatFelallit(valasztott) {
     const k = maradek.splice((rng() * maradek.length) | 0, 1)[0];
     lista.push({ k, fajta: tobbi[n++ % tobbi.length] });
   }
-  npck = lista.map(({ k, fajta }, i) => npcLetrehoz(k, fajta, szobaKozep(szobak[(i * 3 + 2) % szobak.length])));
+  npck = lista.map(({ k, fajta }, i) => npcLetrehoz(k, fajta, i % 2));
 }
 
 async function indul() {
@@ -1305,6 +1519,9 @@ async function indul() {
       get mod() { return mod; },
       set mod(v) { mod = v; },
       get parbaj() { return parbaj; },
+      get kihivas() { return kihivas; },
+      set kihivas(v) { kihivas = v; },
+      get butorok() { return butorok; },
     };
 
     await jatekFut();
