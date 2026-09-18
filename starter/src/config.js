@@ -118,8 +118,9 @@ export const SZINEK = [
 
 /** A ket jatekos alapszine es neve. A szint a valasztoban felul lehet irni. */
 export const CSAPAT = [
-  { nev: '1. JÁTÉKOS', ...SZINEK[0] },
-  { nev: '2. JÁTÉKOS', ...SZINEK[1] },
+  // A nev a kiterjesztes UTAN all, kulonben a szin neve irna felul.
+  { ...SZINEK[0], nev: '1. JÁTÉKOS' },
+  { ...SZINEK[1], nev: '2. JÁTÉKOS' },
 ];
 
 /** Az NPC-k ingszine. A ket fo zavaro kap sajat, veszelyt jelzo szint. */

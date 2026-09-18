@@ -182,9 +182,16 @@ function pxHatar(sz) {
 // A butor kulon reteg es TOLHATO. A padlo alatta is festheto: a butor csak
 // rajta all. Az asztalok es a szekek mozgathatok, a pult es a lepcso nem.
 
-/** Egy butordarab: x,y a KOZEPPONTJA pixelben. */
-function butor(tipus, x, y, w, h, tol = true) {
-  return { tipus, x, y, w, h, tol, vx: 0, vy: 0 };
+/**
+ * Egy butordarab: x,y a KOZEPPONTJA pixelben.
+ *
+ *   tol    - tolhato-e a jatekos elott
+ *   atjar  - ATJARHATO-e: ha igen, nem utkozik vele senki, csak ralep.
+ *            A lepcso ilyen: rajta kell tudni menni, es a lepcsohazban
+ *            mindig legyen annyi hely, hogy a jatekos elferjen.
+ */
+function butor(tipus, x, y, w, h, tol = true, atjar = false) {
+  return { tipus, x, y, w, h, tol, atjar, vx: 0, vy: 0 };
 }
 
 /**
@@ -274,7 +281,7 @@ export function butorokEpit(szobak, fal) {
     }
 
     if (sz.tipus === 'lepcso') {
-      rak(butor('lepcso', b.x + b.w / 2, b.y + b.h / 2, b.w - 26, b.h - 34, false));
+      rak(butor('lepcso', b.x + b.w / 2, b.y + b.h / 2, b.w - 26, b.h - 34, false, true));
       continue;
     }
   }
@@ -283,7 +290,7 @@ export function butorokEpit(szobak, fal) {
   for (const sz of szobak) {
     if (rng() < 0.5) continue;
     const b = pxHatar(sz);
-    rak(butor('noveny', b.x + 14, b.y + 14, 14, 14, false));
+    rak(butor('noveny', b.x + 14, b.y + 14, 14, 14, false, true));
   }
 
   return ki;

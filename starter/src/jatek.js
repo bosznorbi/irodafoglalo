@@ -402,6 +402,7 @@ function butorSzabad(b, x, y) {
  */
 function butorUtkozes(e, tolhat) {
   for (const b of butorok) {
+    if (b.atjar) continue;          // lepcso, noveny: at lehet rajta menni
     const dx = e.x - b.x;
     const dy = e.y - b.y;
     const ox = b.w / 2 + e.r - Math.abs(dx);
@@ -1227,9 +1228,19 @@ function csapatFelallit(valasztott) {
 
   const foglalt = new Set(valasztott.map((v) => v.kollega.id));
   const lista = [];
+
+  // A ket fogonosz szerepe MINDIG betoltodik. Alapbol Patki es Varo, de ha
+  // valamelyiket eppen egy jatekos valasztotta, akkor helyette veletlenszeruen
+  // beugrik valaki mas. Jatekos karaktere sosem lesz NPC.
   for (const [id, fajta] of [[PATKI_ID, 'patki'], [VARO_ID, 'varo']]) {
-    const k = kollegak.find((x) => x.id === id);
-    if (k && !foglalt.has(id)) { lista.push({ k, fajta }); foglalt.add(id); }
+    let k = kollegak.find((x) => x.id === id);
+    if (!k || foglalt.has(id)) {
+      const jelolt = kollegak.filter((x) => !foglalt.has(x.id));
+      if (!jelolt.length) continue;
+      k = jelolt[(rng() * jelolt.length) | 0];
+    }
+    lista.push({ k, fajta });
+    foglalt.add(k.id);
   }
   const tobbi = ['kerget', 'lesben', 'folyoso', 'bolyong', 'kerget', 'bolyong', 'lesben', 'bolyong'];
   const maradek = kollegak.filter((k) => !foglalt.has(k.id));
