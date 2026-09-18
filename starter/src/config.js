@@ -73,8 +73,8 @@ export const PAL = {
 
 /** A ket jatekos szine: terulet, festekcsik, es a keret/kiemeles. */
 export const CSAPAT = [
-  { nev: '1. JATEKOS', ter: '#1B8E93', csik: '#3BE0E0', jel: '#66F0F0' },
-  { nev: '2. JATEKOS', ter: '#C46A18', csik: '#FFA92E', jel: '#FFC866' },
+  { nev: '1. JÁTÉKOS', ter: '#1B8E93', csik: '#3BE0E0', jel: '#66F0F0' },
+  { nev: '2. JÁTÉKOS', ter: '#C46A18', csik: '#FFA92E', jel: '#FFC866' },
 ];
 
 /** Az NPC-k ingszine. A ket fo zavaro kap sajat, veszelyt jelzo szint. */
@@ -123,10 +123,10 @@ export function arnyal(hex, arany) {
 // szint latjak a kontrolleren, a betu csak zavar.
 
 export const GOMB = {
-  y: { nev: 'ZOLD', szin: '#3FBF5F', kod: ['KeyF', 'KeyJ'] },
-  x: { nev: 'KEK', szin: '#3B7FD6', kod: ['KeyT', 'KeyI'] },
+  y: { nev: 'ZÖLD', szin: '#3FBF5F', kod: ['KeyF', 'KeyJ'] },
+  x: { nev: 'KÉK', szin: '#3B7FD6', kod: ['KeyT', 'KeyI'] },
   a: { nev: 'PIROS', szin: '#D62828', kod: ['KeyH', 'KeyL'] },
-  b: { nev: 'SARGA', szin: '#E8B21F', kod: ['KeyG', 'KeyK'] },
+  b: { nev: 'SÁRGA', szin: '#E8B21F', kod: ['KeyG', 'KeyK'] },
 };
 
 /** A ket pad START gombja. Barmelyik indit uj kort. */

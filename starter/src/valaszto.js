@@ -129,9 +129,9 @@ export function karakterValaszto({ ctx, kollegak, jellemzok, kiemelt = [], hatte
       drawText(ctx, CSAPAT[i].nev, cx, 86, { scale: 3, color: szin, shadow: '#0b0d12', align: 'center' });
 
       if (a.kesz) {
-        drawText(ctx, 'KESZ', cx, 128, { scale: 2, color: PAL.feliratVil, shadow: '#0b0d12', align: 'center' });
+        drawText(ctx, 'KÉSZ', cx, 128, { scale: 2, color: PAL.feliratVil, shadow: '#0b0d12', align: 'center' });
       } else if (gepel === i) {
-        drawText(ctx, 'BILLENTYUZET ITT', cx, 130, { scale: 1, color: PAL.szonyegVil, shadow: '#0b0d12', align: 'center' });
+        drawText(ctx, 'BILLENTYŰZET ITT', cx, 130, { scale: 1, color: PAL.szonyegVil, shadow: '#0b0d12', align: 'center' });
       }
 
       if (!k) return;
@@ -155,7 +155,7 @@ export function karakterValaszto({ ctx, kollegak, jellemzok, kiemelt = [], hatte
       drawText(ctx, k.nev.toUpperCase(), cx, 444, { scale: 2, color: PAL.szonyegVil, shadow: '#0b0d12', align: 'center' });
 
       if (kiemelt.includes(k.id)) {
-        drawText(ctx, 'FIGYELEM, EZ EGY ZAVARO', cx, 472, { scale: 1, color: PAL.riado, shadow: '#0b0d12', align: 'center' });
+        drawText(ctx, 'FIGYELEM, EZ EGY ZAVARÓ', cx, 472, { scale: 1, color: PAL.riado, shadow: '#0b0d12', align: 'center' });
       }
 
       if (a.kesz) return;
@@ -171,18 +171,20 @@ export function karakterValaszto({ ctx, kollegak, jellemzok, kiemelt = [], hatte
       ctx.fillRect(doboz.x + doboz.w - 3, doboz.y, 3, doboz.h);
 
       const q = a.szures.toUpperCase();
-      drawText(ctx, 'KERES:', doboz.x + 14, doboz.y + 15, { scale: 2, color: PAL.felirat, shadow: null });
-      const qx = doboz.x + 14 + textWidth('KERES: ', 2);
+      drawText(ctx, 'KERESÉS:', doboz.x + 14, doboz.y + 15, { scale: 2, color: PAL.felirat, shadow: null });
+      const qx = doboz.x + 14 + textWidth('KERESÉS: ', 2);
       drawText(ctx, q, qx, doboz.y + 15, { scale: 2, color: PAL.feliratVil, shadow: null });
+      // A kurzort rajzolt teglalap adja: a pixelfontban nincs alahuzas jel.
       if (gepel === i && Math.floor(ido * 2) % 2 === 0) {
-        drawText(ctx, '_', qx + textWidth(q, 2), doboz.y + 15, { scale: 2, color: szin, shadow: null });
+        ctx.fillStyle = szin;
+        ctx.fillRect(qx + textWidth(q, 2) + 2, doboz.y + 16, 10, 16);
       }
 
       // szamlalo es sugo
       drawText(ctx, (a.mutat % l.length + 1) + ' / ' + l.length, cx, 566, { scale: 1, color: PAL.felirat, shadow: null, align: 'center' });
       drawText(ctx, 'D-PAD: LAPOZ', cx, 606, { scale: 2, color: PAL.szonyegVil, shadow: '#0b0d12', align: 'center' });
-      drawText(ctx, 'START: VALASZT', cx, 636, { scale: 2, color: szin, shadow: '#0b0d12', align: 'center' });
-      drawText(ctx, 'SELECT: IDE GEPELEK', cx, 668, { scale: 1, color: PAL.felirat, shadow: null, align: 'center' });
+      drawText(ctx, 'START: VÁLASZT', cx, 636, { scale: 2, color: szin, shadow: '#0b0d12', align: 'center' });
+      drawText(ctx, 'SELECT: IDE GÉPELEK', cx, 668, { scale: 1, color: PAL.felirat, shadow: null, align: 'center' });
     }
 
     function kepkocka(most) {
@@ -193,7 +195,7 @@ export function karakterValaszto({ ctx, kollegak, jellemzok, kiemelt = [], hatte
       hatterRajz(ctx, ido);
 
       // cim
-      drawText(ctx, 'VALASSZ KARAKTERT', W / 2, 24, { scale: 4, color: PAL.feliratVil, shadow: '#0b0d12', align: 'center' });
+      drawText(ctx, 'VÁLASSZ KARAKTERT', W / 2, 24, { scale: 4, color: PAL.feliratVil, shadow: '#0b0d12', align: 'center' });
 
       // valasztovonal
       ctx.fillStyle = '#2a3140';

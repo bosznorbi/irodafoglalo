@@ -264,7 +264,7 @@ function kitolt(i) {
   const mkod = csikKod(masik);
   if (jatekosok[masik].csik.some((k) => racs[k] !== mkod)) {
     csikTorol(masik);
-    uzenet(jatekosok[masik].kollega.becenev + ' csikja elszakadt', CSAPAT[masik].jel, 1.4);
+    uzenet(jatekosok[masik].kollega.becenev + ' csíkja elszakadt', CSAPAT[masik].jel, 1.4);
   }
 
   if (szerzett > 0) {
@@ -502,7 +502,7 @@ function utkozesek(dt) {
     const i = csikAlatt(j.x, j.y);
     if (i < 0 || i === j.i) continue;
     if (jatekosok[i].serthetetlen > 0 || jatekosok[i].kabult > 0) continue;
-    elvag(i, j.kollega.becenev + ' atvagta', CSAPAT[j.i].jel);
+    elvag(i, j.kollega.becenev + ' átvágta', CSAPAT[j.i].jel);
   }
 
   // Ha a ket jatekos egymasnak megy: parbaj
@@ -554,7 +554,7 @@ function parbajVege(gyoztes, rosszGomb = false) {
   zene.hangJo();
   bumm(parbaj.x, parbaj.y, CSAPAT[gyoztes].jel, 30, 1.4);
   uzenet(
-    jatekosok[gyoztes].kollega.becenev + (rosszGomb ? ' nyert, rossz gomb' : ' behuzott egyet'),
+    jatekosok[gyoztes].kollega.becenev + (rosszGomb ? ' nyert, rossz gomb' : ' behúzott egyet'),
     CSAPAT[gyoztes].jel, 1.8,
   );
   szetlok();
@@ -599,7 +599,7 @@ function kaveLep(dt) {
       bumm(kave.x, kave.y, '#E8B21F', 12, 0.7);
       kave = null;
       kaveIdo = 7 + rng() * 5;
-      uzenet(j.kollega.becenev + ' kavet ivott', CSAPAT[j.i].jel, 1.4);
+      uzenet(j.kollega.becenev + ' kávét ivott', CSAPAT[j.i].jel, 1.4);
       return;
     }
   }
@@ -723,7 +723,7 @@ function lepes(dt) {
     riado = true;
     zene.riado(true);
     zene.hangSziren();
-    uzenet('TUZRIADO! MINDENKI PANIKOL', PAL.riado, 2.6);
+    uzenet('TŰZRIADÓ! MINDENKI PÁNIKOL', PAL.riado, 2.6);
   }
 
   parbajLep(dt);
@@ -890,8 +890,8 @@ function hudRajz() {
     c.fillStyle = 'rgba(8,10,14,0.45)';
     c.fillRect(0, 0, W, H);
     gombKor(parbaj.x, parbaj.y - 54, 34, g.szin, ido);
-    drawText(c, 'ELSOKENT NYOMD MEG!', W / 2, H / 2 - 150, { scale: 3, color: g.szin, shadow: '#0b0d12', outline: '#0b0d12', align: 'center' });
-    drawText(c, 'AKI NYER, BEHUZ EGYET', W / 2, H / 2 - 112, { scale: 2, color: PAL.feliratVil, shadow: '#0b0d12', align: 'center' });
+    drawText(c, 'ELSŐKÉNT NYOMD MEG!', W / 2, H / 2 - 150, { scale: 3, color: g.szin, shadow: '#0b0d12', outline: '#0b0d12', align: 'center' });
+    drawText(c, 'AKI NYER, BEHÚZ EGYET', W / 2, H / 2 - 112, { scale: 2, color: PAL.feliratVil, shadow: '#0b0d12', align: 'center' });
   }
 
   // uzenetek
@@ -917,7 +917,7 @@ function vegKepRajz() {
     c.globalAlpha = 1;
   }
 
-  const cim = dontetlen ? 'DONTETLEN' : jatekosok[gy].kollega.becenev.toUpperCase() + ' NYERT';
+  const cim = dontetlen ? 'DÖNTETLEN' : jatekosok[gy].kollega.becenev.toUpperCase() + ' NYERT';
   const ugras = Math.max(0, Math.sin(Math.min(1, vegeAnim) * Math.PI) * 14);
   drawText(c, cim, W / 2, 120 - ugras, {
     scale: 8, color: dontetlen ? PAL.feliratVil : CSAPAT[gy].jel, shadow: '#07090d', outline: '#0b0d12', align: 'center',
@@ -934,7 +934,7 @@ function vegKepRajz() {
   }
 
   if (vegeAnim > 1.2 && Math.floor(ido * 1.8) % 2 === 0) {
-    drawText(c, 'START: UJ KOR', W / 2, 570, { scale: 4, color: PAL.feliratVil, shadow: '#07090d', outline: '#0b0d12', align: 'center' });
+    drawText(c, 'START: ÚJ KÖR', W / 2, 570, { scale: 4, color: PAL.feliratVil, shadow: '#07090d', outline: '#0b0d12', align: 'center' });
   }
 }
 
@@ -1002,8 +1002,8 @@ function kepkocka(most) {
 
 function toltoKep(kesz, ossz, ido2) {
   hatterRajz(c, ido2);
-  drawText(c, 'SZEKFOGLALO', W / 2, 250, { scale: 8, color: CSAPAT[0].jel, shadow: '#07090d', outline: '#0b0d12', align: 'center' });
-  drawText(c, 'BETOLTES', W / 2, 380, { scale: 3, color: PAL.szonyegVil, shadow: null, align: 'center' });
+  drawText(c, 'SZÉKFOGLALÓ', W / 2, 250, { scale: 8, color: CSAPAT[0].jel, shadow: '#07090d', outline: '#0b0d12', align: 'center' });
+  drawText(c, 'BETÖLTÉS', W / 2, 380, { scale: 3, color: PAL.szonyegVil, shadow: null, align: 'center' });
   const sw = 520;
   const sx = W / 2 - sw / 2;
   c.fillStyle = '#0f1218';
@@ -1056,7 +1056,7 @@ async function indul() {
     await new Promise((ok) => {
       padGate({
         players: 2,
-        title: 'SZEKFOGLALO',
+        title: 'SZÉKFOGLALÓ',
         subtitle: 'Két USB kontroller, két kolléga, egy iroda. Nyomj egy gombot mindkét paden.',
         allowKeyboard: true,
         onClose: () => { pads.keyboard(true); nyomva.clear(); ok(); },

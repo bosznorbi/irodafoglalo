@@ -13,7 +13,7 @@ import { figuraKerd, SPRITE_W, SPRITE_H } from './karakter.js';
 import { logoPixel } from './palya.js';
 import { hangValaszt } from './zene.js';
 
-const CIM = 'SZEKFOGLALO';
+const CIM = 'SZÉKFOGLALÓ';
 
 export function cimkepernyo({ ctx, kollegak, jellemzok, logoKep, hatterRajz }) {
   return new Promise((kesz) => {
@@ -99,15 +99,15 @@ export function cimkepernyo({ ctx, kollegak, jellemzok, logoKep, hatterRajz }) {
         x += betuW;
       }
 
-      drawText(ctx, 'TERULETFOGLALO AZ IRODABAN', W / 2, 330, { scale: 3, color: PAL.szonyegVil, shadow: '#07090d', align: 'center' });
-      drawText(ctx, 'KET JATEKOS  -  KET KONTROLLER  -  EGY PERC', W / 2, 376, { scale: 2, color: PAL.felirat, shadow: null, align: 'center' });
+      drawText(ctx, 'TERÜLETFOGLALÓ AZ IRODÁBAN', W / 2, 330, { scale: 3, color: PAL.szonyegVil, shadow: '#07090d', align: 'center' });
+      drawText(ctx, 'KÉT JÁTÉKOS  -  KÉT KONTROLLER  -  EGY PERC', W / 2, 376, { scale: 2, color: PAL.felirat, shadow: null, align: 'center' });
 
       // --- villogo felhivas
       if (Math.floor(ido * 1.6) % 2 === 0) {
         drawText(ctx, 'NYOMD MEG A START GOMBOT', W / 2, 452, { scale: 4, color: PAL.feliratVil, shadow: '#07090d', align: 'center' });
       }
 
-      drawText(ctx, 'M: NEMITAS    F11: TELJES KEPERNYO', W / 2, H - 46, { scale: 1, color: PAL.felirat, shadow: null, align: 'center' });
+      drawText(ctx, 'M: NÉMÍTÁS    F11: TELJES KÉPERNYŐ', W / 2, H - 46, { scale: 1, color: PAL.felirat, shadow: null, align: 'center' });
     }
     requestAnimationFrame(kepkocka);
   });
